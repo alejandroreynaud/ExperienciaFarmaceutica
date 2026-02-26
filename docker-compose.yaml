@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: container_proyecto
+    restart: always
+    ports: 
+    - "5430:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: proyecto_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:
