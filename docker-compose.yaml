@@ -3,13 +3,37 @@ services:
     image: postgres:16
     container_name: container_proyecto
     restart: always
-    ports: 
-    - "5430:5432"
+    ports:
+      - "5430:5432"
+    env_file:
+      - proyecto_db-API/.env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: proyecto_db
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./proyecto_db-API
+    container_name: proyecto_api
+    restart: always
+    ports:
+      - "3008:3000"
+      - "3009:3001"
+    env_file:
+      - proyecto_db-API/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./proyecto_db-API:/app
+      - /app/node_modules
+
 volumes:
   db_data:
