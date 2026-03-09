@@ -10,10 +10,23 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       id_factura: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        unique: true,
+        references: {
+          model: 'Facturas',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
       },
       id_cliente: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'Clientes',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
       },
       saldo_pendiente: {
         type: Sequelize.DECIMAL

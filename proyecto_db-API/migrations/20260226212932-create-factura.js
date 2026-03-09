@@ -10,7 +10,14 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       id_venta: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        unique: true,
+        references: {
+          model: 'Venta',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
       },
       num_factura: {
         type: Sequelize.STRING
