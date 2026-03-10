@@ -1,0 +1,6 @@
+agregar a repo
+- git add --all
+
+commit
+- git commit -m "mensaje"
+

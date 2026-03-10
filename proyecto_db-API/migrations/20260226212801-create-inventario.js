@@ -10,7 +10,13 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       id_prod: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'Productos',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
       },
       cantidad: {
         type: Sequelize.INTEGER
