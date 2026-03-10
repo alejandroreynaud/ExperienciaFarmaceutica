@@ -13,7 +13,6 @@ let getClienteById = async (request, response) => {
             });
         }
 
-        // Respuesta exitosa
         response.status(200).json({
             status: 200,
             data: cliente
@@ -29,6 +28,46 @@ let getClienteById = async (request, response) => {
     }
 };
 
+
+let createCliente = async (request, response) => {
+    try {
+
+        // Recibir datos del body
+        const { nombre, identidad, RTN, telefono } = request.body;
+
+        // Validar datos
+        if (!nombre || !telefono || !identidad) {
+            return response.status(400).json({
+                status: 400,
+                message: "Nombre, identidad y teléfono son obligatorios"
+            });
+        }
+
+        // Crear cliente
+        let cliente = await Cliente.create({
+            nombre,
+            identidad,
+            RTN,
+            telefono
+        });
+
+        response.status(201).json({
+            status: 201,
+            message: "Cliente creado correctamente",
+            data: cliente
+        });
+
+    } catch (error) {
+
+        response.status(500).json({
+            status: 500,
+            message: error.message
+        });
+
+    }
+};
+
 module.exports = {
-    getClienteById
+    getClienteById,
+    createCliente
 };
