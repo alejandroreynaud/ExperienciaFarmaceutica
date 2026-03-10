@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16
+    image: postgres:15
     container_name: container_proyecto
     restart: always
     ports:
@@ -8,9 +8,9 @@ services:
     env_file:
       - proyecto_db-API/.env
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-expfarma}
+      POSTGRES_DB: ${DB_NAME:-proyecto_db}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,17 +23,21 @@ services:
     build: ./proyecto_db-API
     container_name: proyecto_api
     restart: always
+    command: sh -c "npm install; npm start"
     ports:
       - "3008:3000"
-      - "3009:3001"
     env_file:
       - proyecto_db-API/.env
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./proyecto_db-API:/app
-      - /app/node_modules
+      - backend_node_modules:/app/node_modules
 
 volumes:
   db_data:
+  backend_node_modules:
