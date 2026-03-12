@@ -1,9 +1,24 @@
-const { Venta } = require("../models");
+const { Venta, sequelize } = require("../models");
 
 let getVentas = async (request, response) => {
     try {
 
-        let ventas = await Venta.findAll();
+        let ventas;
+
+        if (request.query.fecha) {
+
+            ventas = await Venta.findAll({
+                where: sequelize.where(
+                    sequelize.fn('DATE', sequelize.col('fecha')),
+                    request.query.fecha
+                )
+            });
+
+        } else {
+
+            ventas = await Venta.findAll();
+
+        }
 
         if (ventas.length <= 0) {
 
@@ -30,6 +45,7 @@ let getVentas = async (request, response) => {
 
     }
 };
+
 
 let getVentaById = async (request, response) => {
     try {
