@@ -1,15 +1,30 @@
-const { Venta } = require("../models");
+const { Venta, sequelize } = require("../models");
 
 let getVentas = async (request, response) => {
     try {
 
-        let ventas = await Venta.findAll();
+        let ventas;
+
+        if (request.query.fecha) {
+
+            ventas = await Venta.findAll({
+                where: sequelize.where(
+                    sequelize.fn('DATE', sequelize.col('fecha')),
+                    request.query.fecha
+                )
+            });
+
+        } else {
+
+            ventas = await Venta.findAll();
+
+        }
 
         if (ventas.length <= 0) {
 
             response.status(204).json({
                 status: 204,
-                message: "No se encontraron ventas"
+                message: "No sales found"
             });
 
         } else {
@@ -30,6 +45,7 @@ let getVentas = async (request, response) => {
 
     }
 };
+
 
 let getVentaById = async (request, response) => {
     try {
