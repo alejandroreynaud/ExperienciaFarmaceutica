@@ -5,9 +5,9 @@ const { Producto } = require('../models');
 // Nuevo producto
 let createProducto = async (request, response) => {
     try {
-        const { nombre, imagen } = request.body;
+        const { nombre } = request.body;
 
-        if (nombre === undefined || imagen === undefined ) {
+        if (nombre === undefined || nombre === "") {
             return response.status(400).json({ error: 'Faltan campos obligatorios' });
         }
 
