@@ -7,10 +7,6 @@ services:
       - "5430:5432"
     env_file:
       - proyecto_db-API/.env
-    environment:
-      POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-expfarma}
-      POSTGRES_DB: ${DB_NAME:-proyecto_db}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -33,6 +29,7 @@ services:
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "300"
       DB_HOST: db
+      DB_PORT: "5432"
     depends_on:
       db:
         condition: service_healthy

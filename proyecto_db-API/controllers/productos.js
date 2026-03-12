@@ -5,9 +5,9 @@ const { Producto } = require('../models');
 // Nuevo producto
 let createProducto = async (request, response) => {
     try {
-        const { nombre, imagen } = request.body;
+        const { nombre } = request.body;
 
-        if (nombre === undefined || imagen === undefined ) {
+        if (nombre === undefined || nombre === "") {
             return response.status(400).json({ error: 'Faltan campos obligatorios' });
         }
 
@@ -21,7 +21,7 @@ let createProducto = async (request, response) => {
             message: 'Producto creado exitosamente',
             status: 201,
             data: nuevoProducto
-         });
+        });
 
     } catch (error) {
         console.error('Error al crear producto:', error);
@@ -32,6 +32,67 @@ let createProducto = async (request, response) => {
     }   
 }
 
+//get
+
+let getProductos = async (request, response) => {
+    try { 
+        let productos = await Producto.findAll();
+        if (productos.length === 0) {
+            return response.status(204).json({ 
+                message: 'No se encontraron productos',
+                status: 204
+            });
+        }
+        response.status(200).json({ 
+            message: 'Productos obtenidos exitosamente',
+            status: 200,
+            data: productos
+        });
+    }
+    catch (error) {
+        console.error('Error al obtener productos:', error);
+        response.status(500).json({
+            message: 'Error interno del servidor',
+            status: 500,
+            error: error.message
+        });
+    }
+}
+
+let getProductoByName = async (request, response) => {
+    try {
+        const { nombre } = request.params;
+        if (nombre === undefined || nombre === "") {
+            return response.status(400).json({ 
+                message: 'Faltan campos obligatorios',
+                status: 400
+            });
+        }
+        let producto = await Producto.findOne({ where: { nombre } });
+
+        if (!producto) {
+            return response.status(404).json({
+                message: 'Producto no encontrado',
+                status: 404
+            });
+        }
+        response.status(200).json({
+            message: 'Producto obtenido exitosamente',
+            status: 200,
+            data: producto
+        });
+    } catch (error) {
+        console.error('Error al obtener producto:', error);
+        response.status(500).json({
+            message: 'Error interno del servidor',
+            status: 500,
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
-    createProducto
+    createProducto,
+    getProductos,
+    getProductoByName
 }
