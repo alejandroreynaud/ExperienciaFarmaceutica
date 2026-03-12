@@ -1,9 +1,24 @@
-const { Venta } = require("../models");
+const { Venta, sequelize } = require("../models");
 
-let getVentas = async (request, response) => {
+let getVentasFecha = async (request, response) => {
     try {
 
-        let ventas = await Venta.findAll();
+        let ventas;
+
+        if (request.query.fecha) {
+
+            ventas = await Venta.findAll({
+                where: sequelize.where(
+                    sequelize.fn('DATE', sequelize.col('fecha')),
+                    request.query.fecha
+                )
+            });
+
+        } else {
+
+            ventas = await Venta.findAll();
+
+        }
 
         if (ventas.length <= 0) {
 
@@ -30,6 +45,7 @@ let getVentas = async (request, response) => {
 
     }
 };
+
 
 let getVentaById = async (request, response) => {
     try {
@@ -81,9 +97,47 @@ let createVenta = async (request, response) => {
 
     }
 };
+let getVentasByCliente = async (request, response) => {
+    try {
+
+        const { id_cliente } = request.params;
+
+        let ventas = await Venta.findAll({
+            where: {
+                id_cliente: id_cliente
+            }
+        });
+
+        if (ventas.length <= 0) {
+
+            response.status(204).json({
+                status: 204,
+                message: "No se encontraron ventas para el cliente con id " + id_cliente
+            });
+
+        } else {
+
+            response.status(200).json({
+                status: 200,
+                data: ventas
+            });
+
+        }
+
+    } catch (error) {
+
+        response.status(500).json({
+            status: 500,
+            message: error.message
+        });
+
+    }
+};
 
 module.exports = {
-    getVentas,
+    getVentasFecha,
     getVentaById,
-    createVenta
+    createVenta,
+    getVentasByCliente
+    
 };
