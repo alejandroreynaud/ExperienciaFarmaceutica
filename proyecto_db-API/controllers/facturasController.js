@@ -26,8 +26,38 @@ const getFacturasPorFecha = async (request, response) => {
 };
 
 
+const getFacturaId = async (req, res) => {
+  try {
+
+    const { id } = req.params;
+
+    const factura = await Factura.findByPk(id, {
+      include: [
+        { model: Venta },
+        { model: DetalleFactura }
+      ]
+    });
+
+    if (!factura) {
+      return res.status(404).json({
+        message: "Factura no encontrada"
+      });
+    }
+
+    res.status(200).json(factura);
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: "Error obteniendo factura",
+      error: error.message
+    });
+
+  }
+};
 
 module.exports = {
   getFacturasPorFecha,
+  getFacturaId
   
 };
