@@ -91,8 +91,64 @@ let getProductoByName = async (request, response) => {
     }
 };
 
+// Actualizar producto
+let updateProducto = async (request, response) => {
+    try {
+        const { id } = request.params;
+        const { nombre, imagen } = request.body;
+
+        if (!id) {
+            return response.status(400).json({
+                message: 'ID del producto es requerido',
+                status: 400
+            });
+        }
+
+        let producto = await Producto.findByPk(id);
+        if (!producto) {
+            return response.status(404).json({
+                message: 'Producto no encontrado',
+                status: 404
+            });
+        }
+
+        if (nombre !== undefined && nombre !== "") {
+            let productoExistente = await Producto.findOne({
+                where: { nombre },
+                attribute: ['id']
+            });
+            if (productoExistente && productoExistente.id !== parseInt(id)) {
+                return response.status(409).json({
+                    message: 'El nombre del producto ya existe',
+                    status: 409
+                });
+            }
+            producto.nombre = nombre;
+        }
+
+        if (imagen !== undefined && imagen !== "") {
+            producto.imagen = imagen;
+        }
+
+        await producto.save();
+        response.status(200).json({
+            message: 'Producto actualizado exitosamente',
+            status: 200,
+            data: producto
+        });
+    } catch (error) {
+        console.error('Error al actualizar producto:', error);
+        response.status(500).json({
+            message: 'Error interno del servidor',
+            status: 500,
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createProducto,
     getProductos,
-    getProductoByName
+    getProductoByName,
+    updateProducto
 }
