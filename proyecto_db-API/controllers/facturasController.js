@@ -1,6 +1,6 @@
 const { Factura, Venta, DetalleFactura } = require('../models');
 
-const getFacturasPorFecha = async (request, response) => {
+const getFacturasFecha = async (request, response) => {
   try {
 
     const { fecha } = request.query;
@@ -56,8 +56,51 @@ const getFacturaId = async (req, res) => {
   }
 };
 
+const createFactura = async (request, response) => {
+  try {
+
+    const { id_venta, num_factura, fecha, url_imagen, hash_doc } = request.body;
+
+    const venta = await Venta.findByPk(id_venta);
+
+    if (!venta) {
+      return response.status(404).json({
+        message: "La venta no existe"
+      });
+    }
+
+    const facturaExistente = await Factura.findOne({
+      where: { id_venta }
+    });
+
+    if (facturaExistente) {
+      return response.status(400).json({
+        message: "Esta venta ya tiene una factura"
+      });
+    }
+
+    const factura = await Factura.create({
+      id_venta,
+      num_factura,
+      fecha,
+      url_imagen,
+      hash_doc
+    });
+
+    response.status(201).json(factura);
+
+  } catch (error) {
+
+    response.status(500).json({
+      message: "Error creando factura",
+      error: error.message
+    });
+
+  }
+};
+
 module.exports = {
-  getFacturasPorFecha,
-  getFacturaId
-  
+  getFacturasFecha,
+  getFacturaId,
+  createFactura
 };
