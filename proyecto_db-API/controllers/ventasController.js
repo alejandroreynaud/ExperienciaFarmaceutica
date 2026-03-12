@@ -24,7 +24,7 @@ let getVentas = async (request, response) => {
 
             response.status(204).json({
                 status: 204,
-                message: "No sales found"
+                message: "No se encontraron ventas"
             });
 
         } else {
