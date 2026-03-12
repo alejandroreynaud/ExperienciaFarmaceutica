@@ -5,31 +5,35 @@ const{
   DB_PASSWORD,
   DB_NAME,
   DB_HOST,
+  DB_PORT,
   DB_DIALECT
 } = process.env;
 
 module.exports ={
 
   development: {
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    dialect: process.env.DB_DIALECT
+    username: DB_USERNAME || 'postgres',
+    password: DB_PASSWORD || 'expfarma',
+    database: DB_NAME || 'proyecto_db',
+    host: DB_HOST || 'localhost',
+    port: Number(DB_PORT) || 5430,
+    dialect: DB_DIALECT || 'postgres'
   },
   test: {
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME_TEST || `${process.env.DB_NAME}_test`,
-    host: process.env.DB_HOST,
-    dialect: process.env.DB_DIALECT
+    username: DB_USERNAME || 'postgres',
+    password: DB_PASSWORD || 'expfarma',
+    database: process.env.DB_NAME_TEST || `${DB_NAME}_test`,
+    host: DB_HOST || 'localhost',
+    port: Number(DB_PORT) || 5430,
+    dialect: DB_DIALECT || 'postgres'
   },
   production: {
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    dialect: process.env.DB_DIALECT
+    username: DB_USERNAME || 'postgres',
+    password: DB_PASSWORD || 'expfarma',
+    database: DB_NAME || 'proyecto_db',
+    host: DB_HOST || 'localhost',
+    port: Number(DB_PORT) || 5430,
+    dialect: DB_DIALECT || 'postgres'
   }
 }
 
