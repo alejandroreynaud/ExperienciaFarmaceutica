@@ -52,6 +52,64 @@ let createInventario = async (request, response) => {
 	}
 };
 
+let getInventarios = async (request, response) => {
+	try {
+		let inventarios = await Inventario.findAll({
+			include: [{ model: Producto, attributes: ['nombre', 'imagen'] }]
+		});
+
+		if (inventarios.length === 0) {
+			return response.status(204).json({
+				status: 204,
+				message: 'No se encontraron registros de inventario'
+			});
+		}
+
+		response.status(200).json({
+			status: 200,
+			message: 'Inventario obtenido exitosamente',
+			data: inventarios
+		});
+	} catch (error) {
+		response.status(500).json({
+			status: 500,
+			message: 'Error interno del servidor',
+			error: error.message
+		});
+	}
+};
+
+let getInventarioById = async (request, response) => {
+	try {
+		const { id } = request.params;
+
+		let inventario = await Inventario.findByPk(id, {
+			include: [{ model: Producto, attributes: ['nombre', 'imagen'] }]
+		});
+
+		if (!inventario) {
+			return response.status(404).json({
+				status: 404,
+				message: 'Registro de inventario no encontrado'
+			});
+		}
+
+		response.status(200).json({
+			status: 200,
+			message: 'Inventario obtenido exitosamente',
+			data: inventario
+		});
+	} catch (error) {
+		response.status(500).json({
+			status: 500,
+			message: 'Error interno del servidor',
+			error: error.message
+		});
+	}
+};
+
 module.exports = {
-	createInventario
+	createInventario,
+	getInventarios,
+	getInventarioById
 };
