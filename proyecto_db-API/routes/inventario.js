@@ -4,6 +4,7 @@ const inventarioController = require('../controllers/inventario');
 
 router.post('/inventario', inventarioController.createInventario);
 router.get('/inventario', inventarioController.getInventarios);
-router.get('/inventario/:id', inventarioController.getInventarioById);
+
+router.get('/inventario/:codigo', inventarioController.getInventarioByCodigo);
 
 module.exports = router;

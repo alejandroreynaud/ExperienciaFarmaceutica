@@ -1,66 +1,124 @@
+const { Op } = require('sequelize');
 const { Usuario,Rol } = require('../models');
 
 // Obtener todos los usuarios
 const getAllUsuarios = async (req, res) => {
   try {
-    const usuarios = await Usuario.findAll();
-  if (usuarios === null || usuarios.length > 0) {
-      res.status(200).json(usuarios);
-    } else {
-      res.status(400).json({
-        status: "BAD REQUEST",
-        message: "No Existen usuarios en la Base de datos",
-      });
-    }
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+ 
+    const { count, rows: usuarios } = await Usuario.findAndCountAll({
+      attributes: { exclude: ['password'] }, 
+      limit,
+      offset,
+      order: [['nombre', 'ASC']]
+    });
+ 
+    res.status(200).json({
+      total: count,
+      pagina: page,
+      porPagina: limit,
+      usuarios
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error internal Server :c", error: error.message });
+    console.error('Error al obtener usuarios:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
 
-// Obtener usuario por ID
-  const getUsuarioById = async (req, res) => {
+// Buscar usuarios por correo, nombre o estado
+const getUsuariosFiltrados = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'El id es inválido' });
+    const { correo, nombre, estado } = req.query;
+    const where = {};
+ 
+    if (!correo && !nombre && estado === undefined) {
+      return res.status(400).json({
+        error: 'Debe enviar al menos un filtro: correo, nombre o estado'
+      });
     }
-    const usuario = await Usuario.findByPk(id);
-    if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+ 
+    if (correo) {
+      where.correo = { [Op.like]: `%${correo.trim().toLowerCase()}%` }; // Op.like para compatibilidad
     }
-    res.status(200).json(usuario);
+ 
+    if (nombre) {
+      where.nombre = { [Op.like]: `%${nombre.trim()}%` };
+    }
+ 
+    if (estado !== undefined) {
+      if (estado !== 'true' && estado !== 'false') {
+        return res.status(400).json({ error: 'El filtro estado debe ser true o false' });
+      }
+      where.estado = estado === 'true';
+    }
+ 
+    const usuarios = await Usuario.findAll({
+      where,
+      attributes: { exclude: ['password'] } // excluir password
+    });
+ 
+    res.status(200).json(usuarios);
   } catch (error) {
-    console.error('Error al obtener usuario:', error);
+    console.error('Error al filtrar usuarios:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
 
 // Crear nuevo usuario
+const bcrypt = require('bcrypt');
 const createUsuario = async (req, res) => {
   try {
     const { nombre, telefono, correo, password, estado } = req.body;
+ 
+    // Validacion de presencia
+    if (!nombre?.trim() || !telefono?.trim() || !correo?.trim() || !password?.trim()) {
+      return res.status(400).json({ 
+        error: 'Nombre, correo, telefono y contrasena son requeridos',
+        status: 400
 
-    if (!nombre || !correo || !password) {
-      return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos' });
+      });
     }
-
+ 
+    // Validacion de formato de correo
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo.trim())) {
+      return res.status(400).json({ error: 'Formato de correo invalido', status: 400 });
+    }
+ 
+    // Validacion de contrasena segura
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'La contrasena debe tener al menos 8 caracteres', status: 400 });
+    }
+ 
+    const correoNormalizado = correo.trim().toLowerCase();
+ 
+    const usuarioExistente = await Usuario.findOne({ where: { correo: correoNormalizado } });
+    if (usuarioExistente) {
+      return res.status(409).json({ error: 'El correo ya esta registrado', status: 409 }); // 409 Conflict es mas apropiado
+    }
+ 
+    // Hashear la password ANTES de guardar
+    const hashedPassword = await bcrypt.hash(password, 10);
+ 
     const nuevoUsuario = await Usuario.create({
-      nombre,
-      telefono,
-      correo,
-      password,
+      nombre: nombre.trim(),
+      telefono: telefono.trim(),
+      correo: correoNormalizado,
+      password: hashedPassword,
       estado: estado !== undefined ? estado : true
     });
-
-    res.status(201).json(nuevoUsuario);
+ 
+    // Nunca retornar la password
+    const { password: _, ...usuarioSinPassword } = nuevoUsuario.toJSON();
+    res.status(201).json(usuarioSinPassword);
   } catch (error) {
     console.error('Error al crear usuario:', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
-      res.status(400).json({ error: 'El correo ya está registrado' });
+      res.status(409).json({ error: 'El correo ya esta registrado', status: 409 });
     } else {
-      res.status(500).json({ error: 'Error interno del servidor' });
+      res.status(500).json({ error: 'Error interno del servidor', status: 500 });
     }
   }
 };
@@ -69,207 +127,153 @@ const createUsuario = async (req, res) => {
 const updateUsuario = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, telefono, correo, password, estado } = req.body;
-
+ 
     if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'ID de usuario inválido' });
+      return res.status(400).json({ error: 'El id del usuario es invalido' });
     }
-
+ 
+    const { nombre, telefono, correo, estado } = req.body;
+    // Nota: password se maneja en un endpoint separado por seguridad
+ 
     const usuario = await Usuario.findByPk(id);
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
-
-    await usuario.update({
-      nombre,
-      telefono,
-      correo,
-      password,
-      estado
-    });
-
-    res.status(200).json(usuario);
+ 
+    if (correo) {
+      const correoNormalizado = correo.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(correoNormalizado)) {
+        return res.status(400).json({ error: 'Formato de correo invalido' });
+      }
+      const usuarioConCorreo = await Usuario.findOne({ where: { correo: correoNormalizado } });
+      if (usuarioConCorreo && usuarioConCorreo.id !== usuario.id) {
+        return res.status(409).json({ error: 'El correo ya esta en uso' });
+      }
+    }
+ 
+    // Solo actualizar los campos que vienen en el body (patch semantics)
+    const datosActualizados = {};
+    if (nombre?.trim())   datosActualizados.nombre = nombre.trim();
+    if (telefono?.trim()) datosActualizados.telefono = telefono.trim();
+    if (correo?.trim())   datosActualizados.correo = correo.trim().toLowerCase();
+    if (estado !== undefined) datosActualizados.estado = estado;
+ 
+    await usuario.update(datosActualizados);
+ 
+    const { password: _, ...usuarioSinPassword } = usuario.toJSON();
+    res.status(200).json(usuarioSinPassword);
   } catch (error) {
     console.error('Error al actualizar usuario:', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
-      res.status(400).json({ error: 'El correo ya está registrado' });
+      res.status(409).json({ error: 'El correo ya esta registrado' });
     } else {
       res.status(500).json({ error: 'Error interno del servidor' });
     }
   }
 };
 
-// Deshabilitar usuario
-const deshabilitarUsuario = async (req, res) => {
+const cambiarEstadoUsuario = async (req, res) => {
   try {
-    const { id } = req.params;
-
+    const { id } = req.params; 
+ 
     if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'El id es inválido' });
+      return res.status(400).json({ error: 'El id del usuario es invalido', status: 400 });
     }
-
+ 
     const usuario = await Usuario.findByPk(id);
-    console.log('Usuario encontrado para deshabilitar:', usuario);
+ 
     if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: 'Usuario no encontrado', status: 404 });
     }
-
-    await usuario.update({ estado: false });
-    res.status(200).json({ message: 'Usuario deshabilitado exitosamente' });
+ 
+    const nuevoEstado = !usuario.estado;
+    await usuario.update({ estado: nuevoEstado });
+ 
+    res.status(200).json({
+      message: `Usuario ${nuevoEstado ? 'habilitado' : 'deshabilitado'} correctamente`,
+      id: usuario.id,
+      estado: nuevoEstado,
+      status: 200
+    });
   } catch (error) {
-    console.error('Error al deshabilitar usuario:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-};
-
-// Habilitar usuario
-const habilitarUsuario = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'El id es inválido' });
-    }
-
-    const usuario = await Usuario.findByPk(id);
-
-    if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    await usuario.update({ estado: true });
-    res.status(200).json({ message: 'Usuario habilitado' });
-  } catch (error) {
-    console.error('Error al habilitar usuario:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('Error al cambiar estado de usuario:', error);
+    res.status(500).json({ error: 'Error interno del servidor', status: 500 });
   }
 };
 
 const login = async (req, res) => {
   try {
     const { correo, password } = req.body;
-
-    if (!correo || !password) {
-      return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
+ 
+    if (!correo?.trim() || !password?.trim()) {
+      return res.status(400).json({ error: 'Correo y contrasena son requeridos', status: 400 });
+    }
+ 
+    const correoNormalizado = correo.trim().toLowerCase();
+    const usuario = await Usuario.findOne({
+      where: { correo: correoNormalizado },
+      include: [{ model: Rol, through: { attributes: [] }, attributes: ['nombre'] }]
+    });
+ 
+    // Verificar existencia y password
+    if (!usuario || !(await bcrypt.compare(password, usuario.password))) {
+      return res.status(401).json({ error: 'Credenciales invalidas', status: 401 });
+    }
+ 
+    // Verificar estado por separado para mensaje claro
+    if (!usuario.estado) {
+      return res.status(403).json({ error: 'Tu cuenta esta deshabilitada, contacta al administrador', status: 403 });
     }
 
-    const usuario = await Usuario.findOne({ where: { correo } });
-
-
-    if (!usuario || usuario.password !== password || !usuario.estado) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
-
+ 
     res.status(200).json({
       message: 'Login exitoso',
-      usuario: usuario
+      status: 200,
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        roles: usuario.Rols?.map(r => r.nombre) || []
+      }
     });
   } catch (error) {
     console.error('Error en login:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ error: 'Error interno del servidor', status: 500 });
   }
 };
 
 // Verificar estado del usuario
 const checkStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-
+    const id = parseInt(req.params.id);
+ 
     if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'El id es inválido' });
+      return res.status(400).json({ error: 'El id es invalido', status: 400 });
     }
-
-    const usuario = await Usuario.findByPk(id);
-
-    if (!usuario) {
-      return res.status(404).json({ error: 'No se encontró el usuario' });
-    }
-
-    res.status(200).json({
-      id: usuario.id,
-      estado: usuario.estado
+ 
+    const usuario = await Usuario.findByPk(id, {
+      attributes: ['id', 'estado'] // Solo traer lo necesario
     });
+ 
+    if (!usuario) {
+      return res.status(404).json({ error: 'No se encontro el usuario', status: 404 });
+    }
+ 
+    res.status(200).json({ id: usuario.id, estado: usuario.estado, status: 200 });
   } catch (error) {
     console.error('Error al verificar estado:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-};
-
-// Verificar si usuario tiene los roles requeridos
-const checkRole = async (req, res) => {
-  try {
-    const { id_usuario, rolesRequeridos } = req.body;
-
-    if (!id_usuario || !rolesRequeridos || !Array.isArray(rolesRequeridos)) {
-      return res.status(400).json({ 
-        error: 'Debe enviar id_usuario y rolesRequeridos (array)' 
-      });
-    }
-
-    // Buscar usuario con sus roles
-    const usuario = await Usuario.findByPk(id_usuario, {
-      include: [{
-        model: Rol,
-        through: { attributes: [] },
-        attributes: ['nombre']
-      }]
-    });
-
-    if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    if (!usuario.estado) {
-      return res.status(401).json({ error: 'Usuario deshabilitado' });
-    }
-
-    // Obtener los roles del usuario
-    const rolesUsuario = usuario.Rols ? usuario.Rols.map(r => r.nombre) : [];
-
-    // Roles permitidos para la empresa
-    const rolesPermitidos = ['admin', 'gerente', 'empleado', 'cajero', 'almacenista'];
-    
-    // Verificar que el usuario tenga un rol válido de empresa
-    const tieneRolValido = rolesUsuario.some(rol => rolesPermitidos.includes(rol));
-
-    if (!tieneRolValido) {
-      return res.status(403).json({ 
-        error: 'Usuario no tiene roles válidos de empresa' 
-      });
-    }
-
-    // Verificar si tiene los roles necesarios
-    const tieneRolesRequeridos = rolesRequeridos.some(rol => rolesUsuario.includes(rol));
-
-    if (!tieneRolesRequeridos) {
-      return res.status(403).json({ 
-        error: 'usuario no tiene los permisos requeridos' 
-      });
-    }
-
-    res.status(200).json({
-      autorizado: true,
-      usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        correo: usuario.correo
-      },
-      rolesActuales: rolesUsuario
-    });
-  } catch (error) {
-    console.error('Error al verificar rol:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ error: 'Error interno del servidor', status: 500 });
   }
 };
 
 module.exports = {
   getAllUsuarios,
-  getUsuarioById,
+  getUsuariosFiltrados,
   createUsuario,
   updateUsuario,
-  deshabilitarUsuario,
-  habilitarUsuario,
+  cambiarEstadoUsuario,
   login,
   checkStatus,
-  checkRole
+  
 };

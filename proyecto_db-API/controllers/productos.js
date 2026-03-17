@@ -5,15 +5,20 @@ const { Producto } = require('../models');
 // Nuevo producto
 let createProducto = async (request, response) => {
     try {
-        const { nombre } = request.body;
+        const { nombre, codigo } = request.body;
 
-        if (nombre === undefined || nombre === "") {
+        if (nombre === undefined || nombre === "" || codigo === undefined || codigo === "") {
             return response.status(400).json({ error: 'Faltan campos obligatorios' });
         }
 
         let productoExistente = await Producto.findOne({ where: { nombre } });
         if (productoExistente) {
             return response.status(409).json({ error: 'El producto ya existe' });
+        }
+
+        let codigoExistente = await Producto.findOne({ where: { codigo } });
+        if (codigoExistente) {
+            return response.status(409).json({ error: 'El codigo del producto ya existe' });
         }
 
         let nuevoProducto = await Producto.create(request.body);
@@ -95,7 +100,7 @@ let getProductoByName = async (request, response) => {
 let updateProducto = async (request, response) => {
     try {
         const { id } = request.params;
-        const { nombre, imagen } = request.body;
+        const { nombre, imagen, codigo } = request.body;
 
         if (!id) {
             return response.status(400).json({
@@ -109,6 +114,13 @@ let updateProducto = async (request, response) => {
             return response.status(404).json({
                 message: 'Producto no encontrado',
                 status: 404
+            });
+        }
+
+        if ((codigo !== undefined && codigo === "") || producto.codigo === null) {
+            return response.status(400).json({
+                message: 'El codigo del producto es obligatorio',
+                status: 400
             });
         }
 
@@ -128,6 +140,20 @@ let updateProducto = async (request, response) => {
 
         if (imagen !== undefined && imagen !== "") {
             producto.imagen = imagen;
+        }
+
+        if (codigo !== undefined && codigo !== "") {
+            let codigoExistente = await Producto.findOne({
+                where: { codigo },
+                attributes: ['id']
+            });
+            if (codigoExistente && codigoExistente.id !== parseInt(id)) {
+                return response.status(409).json({
+                    message: 'El codigo del producto ya existe',
+                    status: 409
+                });
+            }
+            producto.codigo = codigo;
         }
 
         await producto.save();
