@@ -8,7 +8,7 @@ const {
   cambiarEstadoUsuario,
   login,
   checkStatus
-} = require('../controllers/usuarioController');
+} = require('../controllers/usuario');
 
 router.post('/login', login);
 router.get('/', getAllUsuarios);

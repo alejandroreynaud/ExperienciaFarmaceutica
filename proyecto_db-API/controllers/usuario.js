@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Usuario,Rol } = require('../models');
+const bcrypt = require('bcryptjs');
 
 // Obtener todos los usuarios
 const getAllUsuarios = async (req, res) => {
@@ -67,7 +68,7 @@ const getUsuariosFiltrados = async (req, res) => {
 };
 
 // Crear nuevo usuario
-const bcrypt = require('bcrypt');
+
 const createUsuario = async (req, res) => {
   try {
     const { nombre, telefono, correo, password, estado } = req.body;
@@ -275,5 +276,5 @@ module.exports = {
   cambiarEstadoUsuario,
   login,
   checkStatus,
-  
+
 };
