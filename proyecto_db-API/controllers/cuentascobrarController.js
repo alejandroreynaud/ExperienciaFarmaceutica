@@ -72,7 +72,7 @@ let createCuentaCobrar = async (request, response) => {
             });
         }
 
-        // Verificar que la factura existe
+        // Verificar que la factura exista
         const factura = await Factura.findByPk(id_factura);
         if (!factura) {
             return response.status(404).json({
@@ -114,7 +114,57 @@ let createCuentaCobrar = async (request, response) => {
     }
 };
 
+let updateCuentaCobrar = async (request, response) => {
+    try {
 
+        const id = request.params.id;
+
+        let cuenta = await CuentaPorCobrar.findByPk(id);
+
+        if (!cuenta) {
+            return response.status(404).json({
+                status: 404,
+                message: "Cuenta por cobrar no encontrada"
+            });
+        }
+
+        const { saldo_pendiente, estado, fecha_creado } = request.body;
+
+        if (saldo_pendiente !== undefined && (isNaN(saldo_pendiente) || saldo_pendiente < 0)) {
+            return response.status(400).json({
+                status: 400,
+                message: "El saldo_pendiente debe ser un número mayor o igual a 0"
+            });
+        }
+
+        if (estado !== undefined && typeof estado !== "boolean") {
+            return response.status(400).json({
+                status: 400,
+                message: "El estado debe ser true o false"
+            });
+        }
+
+        await cuenta.update({
+            saldo_pendiente,
+            estado,
+            fecha_creado
+        });
+
+        response.status(200).json({
+            status: 200,
+            message: "Cuenta por cobrar actualizada correctamente",
+            data: cuenta
+        });
+
+    } catch (error) {
+
+        response.status(500).json({
+            status: 500,
+            message: error.message
+        });
+
+    }
+};
 
 
 
