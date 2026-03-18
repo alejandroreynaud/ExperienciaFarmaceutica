@@ -14,7 +14,13 @@ module.exports = {
         allowNull: false
       },
       imagen: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      activo: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
       },
       createdAt: {
         allowNull: false,

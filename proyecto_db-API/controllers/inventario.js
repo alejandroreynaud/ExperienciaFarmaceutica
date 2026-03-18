@@ -23,18 +23,28 @@ let createInventario = async (request, response) => {
   try {
     const {
       codigo,
+	  nombre,
       cantidad,
       fecha_compra,
       fecha_vencimiento,
       lote_activo,
     } = request.body;
 
+	 if (!nombre_prod && !codigo_prod) {
+            return response.status(400).json({
+                status: 400,
+                message: 'Debe proporcionar el nombre o código del producto'
+            });
+        }
+
     if (
       codigo === undefined ||
+	  nombre === undefined ||
       cantidad === undefined ||
       !fecha_compra ||
       !fecha_vencimiento ||
       codigo === "" ||
+	  nombre === "" ||
       cantidad === "" ||
       fecha_compra === "" ||
       fecha_vencimiento === ""
@@ -53,17 +63,18 @@ let createInventario = async (request, response) => {
       });
     }
 
-    const producto = await Producto.findOne({
-      where: { codigo: codigoProducto },
-      attributes: ["id", "codigo", "nombre"],
-    });
+    const whereClause = codigo_prod
+            ? { codigo: codigo}
+            : { nombre: nombre};
 
-    if (!producto) {
-      return response.status(404).json({
-        status: 404,
-        message: "Producto no encontrado para el codigo enviado",
-      });
-    }
+        const producto = await Producto.findOne({ where: whereClause });
+
+        if (!producto) {
+            return response.status(404).json({
+                status: 404,
+                message: 'Producto no encontrado para el nombre o código enviado'
+            });
+        }
 
     const cantidadActual = Number(cantidad);
     const fechaCompra = normalizeDate(fecha_compra);
@@ -96,11 +107,11 @@ let createInventario = async (request, response) => {
       });
     }
 
-    if (fechaVencimiento.getTime() <= fechaCompra.getTime()) {
+    if (new Date(fechaVencimiento) <= new Date(fechaCompra)) {
       return response.status(400).json({
         status: 400,
-        message: "La fecha de vencimiento debe ser mayor que la fecha de compra",
-      });
+        message: "La fecha de vencimiento debe ser posterior a la fecha de compra",
+    });
     }
 
     let inventario = await Inventario.create({
@@ -115,7 +126,11 @@ let createInventario = async (request, response) => {
     response.status(201).json({
       status: 201,
       message: "Inventario creado exitosamente",
-      data: inventario,
+      data: inventario.json(),
+		producto: {
+			codigo: producto.codigo,
+			nombre: producto.nombre
+		}
     });
   } catch (error) {
     response.status(500).json({
