@@ -10,6 +10,8 @@ var ventasRoutes = require("./routes/ventas");
 var productosRoutes = require("./routes/productos");
 var facturasRoutes = require("./routes/facturas");
 var inventarioRoutes = require('./routes/inventario');
+var clientesRoutes = require('./routes/clientes');
+var comprasRoutes = require('./routes/compras');
 var app = express();
 
 // view engine setup
@@ -28,7 +30,8 @@ app.use("/api", ventasRoutes);
 app.use("/api", productosRoutes);
 app.use('/api', facturasRoutes);
 app.use('/api', inventarioRoutes);
-app.use('/api', inventarioRoutes); 
+app.use('/api', clientesRoutes);
+app.use('/api', comprasRoutes);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
