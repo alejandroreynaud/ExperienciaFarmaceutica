@@ -5,7 +5,7 @@ const { Producto } = require('../models');
 // Nuevo producto
 let createProducto = async (request, response) => {
     try {
-        const { nombre, codigo } = request.body;
+        const { nombre, codigo, imagen } = request.body;
 
         if (nombre === undefined || nombre === "" || codigo === undefined || codigo === "") {
             return response.status(400).json({ error: 'Faltan campos obligatorios' });
@@ -21,7 +21,7 @@ let createProducto = async (request, response) => {
             return response.status(409).json({ error: 'El codigo del producto ya existe' });
         }
 
-        let nuevoProducto = await Producto.create(request.body);
+        let nuevoProducto = await Producto.create({ nombre, codigo, imagen });
         response.status(201).json({ 
             message: 'Producto creado exitosamente',
             status: 201,
@@ -127,7 +127,7 @@ let updateProducto = async (request, response) => {
         if (nombre !== undefined && nombre !== "") {
             let productoExistente = await Producto.findOne({
                 where: { nombre },
-                attribute: ['id']
+                attributes: ['id']
             });
             if (productoExistente && productoExistente.id !== parseInt(id)) {
                 return response.status(409).json({

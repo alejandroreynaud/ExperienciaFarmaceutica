@@ -11,6 +11,7 @@ module.exports = {
       },
       id_prod: {
         type: Sequelize.INTEGER,
+        allowNull: false,
         references: {
           model: 'Productos',
           key: 'id'
@@ -19,19 +20,25 @@ module.exports = {
         onDelete: 'RESTRICT'
       },
       cantidad: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        allowNull: false
       },
       cantidad_inicial: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        allowNull: false
       },
       fecha_compra: {
-        type: Sequelize.DATE
+        type: Sequelize.DATEONLY,
+        allowNull: false
       },
       fecha_vencimiento: {
-        type: Sequelize.DATE
+        type: Sequelize.DATEONLY,
+        allowNull: false
       },
       lote_activo: {
-        type: Sequelize.BOOLEAN
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
       },
       createdAt: {
         allowNull: false,
