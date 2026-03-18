@@ -32,7 +32,6 @@ let getClienteById = async (request, response) => {
 let createCliente = async (request, response) => {
     try {
 
-        // Recibir datos del body
         const { nombre, identidad, RTN, telefono } = request.body;
 
         // Validar datos
@@ -67,7 +66,48 @@ let createCliente = async (request, response) => {
     }
 };
 
+let updateCliente = async (request, response) => {
+    try {
+
+        const id = request.params.id;
+
+        let cliente = await Cliente.findByPk(id);
+
+        if (!cliente) {
+            return response.status(404).json({
+                status: 404,
+                message: "Cliente no encontrado"
+            });
+        }
+
+        const { nombre, identidad, telefono, RTN } = request.body;
+
+        await cliente.update({
+            nombre,
+            identidad,
+            telefono,
+            RTN
+        });
+
+        response.status(200).json({
+            status: 200,
+            message: "Cliente actualizado correctamente",
+            data: cliente
+        });
+
+    } catch (error) {
+
+        response.status(500).json({
+            status: 500,
+            message: error.message
+        });
+
+    }
+};
+
+
 module.exports = {
     getClienteById,
-    createCliente
+    createCliente,
+    updateCliente
 };

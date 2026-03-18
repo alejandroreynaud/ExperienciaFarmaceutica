@@ -4,5 +4,6 @@ const clientesController = require("../controllers/clientesController");
 
 router.post("/clientes", clientesController.createCliente);
 router.get("/clientes/:id", clientesController.getClienteById);
+router.put("/clientes/:id", updateCliente);
 
 module.exports = router;
