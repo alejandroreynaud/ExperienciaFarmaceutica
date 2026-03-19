@@ -172,9 +172,76 @@ let updateProducto = async (request, response) => {
     }
 };
 
+let desactivarProducto = async (request, response) => {
+  try {
+    const { id } = request.params;
+ 
+    if (!id) {
+      return response.status(400).json({
+        message: "ID del producto es requerido",
+        status: 400,
+      });
+    }
+ 
+    const producto = await Producto.findByPk(id);
+ 
+    if (!producto) {
+      return response.status(404).json({
+        message: "Producto no encontrado",
+        status: 404,
+      });
+    }
+ 
+    if (!producto.activo) {
+      return response.status(409).json({
+        message: "El producto ya está inactivo",
+        status: 409,
+      });
+    }
+ 
+    // Verificar si tiene lotes activos con existencias
+    const lotesConStock = await Inventario.count({
+      where: {
+        id_prod: producto.id,
+        lote_activo: true,
+        cantidad: { [Op.gt]: 0 },
+      },
+    });
+ 
+    if (lotesConStock > 0) {
+      return response.status(409).json({
+        status: 409,
+        message: `No se puede desactivar el producto porque tiene ${lotesConStock} lote(s) activo(s) con stock disponible. Cierra o agota los lotes antes de desactivarlo`,
+      });
+    }
+ 
+    producto.activo = false;
+    await producto.save();
+ 
+    response.status(200).json({
+      status: 200,
+      message: "Producto desactivado exitosamente",
+      data: {
+        id: producto.id,
+        codigo: producto.codigo,
+        nombre: producto.nombre,
+        activo: producto.activo,
+      },
+    });
+  } catch (error) {
+    console.error("Error al desactivar producto:", error);
+    response.status(500).json({
+      message: "Error interno del servidor",
+      status: 500,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
     createProducto,
     getProductos,
     getProductoByName,
-    updateProducto
+    updateProducto,
+    desactivarProducto
 }
