@@ -23,28 +23,24 @@ let createInventario = async (request, response) => {
   try {
     const {
       codigo,
-	  nombre,
+      nombre,
       cantidad,
       fecha_compra,
       fecha_vencimiento,
       lote_activo,
     } = request.body;
 
-	 if (!nombre_prod && !codigo_prod) {
-            return response.status(400).json({
-                status: 400,
-                message: 'Debe proporcionar el nombre o código del producto'
-            });
-        }
+    if (!codigo && !nombre) {
+      return response.status(400).json({
+        status: 400,
+        message: "Debe proporcionar el nombre o código del producto",
+      });
+    }
 
     if (
-      codigo === undefined ||
-	  nombre === undefined ||
       cantidad === undefined ||
       !fecha_compra ||
       !fecha_vencimiento ||
-      codigo === "" ||
-	  nombre === "" ||
       cantidad === "" ||
       fecha_compra === "" ||
       fecha_vencimiento === ""
@@ -55,26 +51,30 @@ let createInventario = async (request, response) => {
       });
     }
 
-    const codigoProducto = cleanString(codigo);
-    if (!codigoProducto) {
+    const whereClause = codigo ? { codigo: codigo } : { nombre: nombre };
+
+    if (!Object.values(whereClause)[0]) {
       return response.status(400).json({
         status: 400,
-        message: "Debe ingresar un codigo valido para el producto",
+        message: "El codigo o nombre enviado no es válido",
       });
     }
 
-    const whereClause = codigo_prod
-            ? { codigo: codigo}
-            : { nombre: nombre};
+    const producto = await Producto.findOne({ where: whereClause });
 
-        const producto = await Producto.findOne({ where: whereClause });
+    if (!producto) {
+      return response.status(404).json({
+        status: 404,
+        message: "Producto no encontrado para el nombre o código enviado",
+      });
+    }
 
-        if (!producto) {
-            return response.status(404).json({
-                status: 404,
-                message: 'Producto no encontrado para el nombre o código enviado'
-            });
-        }
+    if (!producto.activo) {
+      return response.status(409).json({
+        status: 409,
+        message: "No se puede agregar inventario a un producto inactivo",
+      });
+    }
 
     const cantidadActual = Number(cantidad);
     const fechaCompra = normalizeDate(fecha_compra);
@@ -94,30 +94,31 @@ let createInventario = async (request, response) => {
     ) {
       return response.status(400).json({
         status: 400,
-        message: "La cantidad inicial no debe enviarse manualmente con un valor distinto a la cantidad actual",
+        message:
+          "La cantidad inicial no debe enviarse manualmente con un valor distinto a la cantidad actual",
       });
     }
-
-    const cantidadInicial = cantidadActual;
 
     if (!fechaCompra || !fechaVencimiento) {
       return response.status(400).json({
         status: 400,
-        message: "La fecha de compra y fecha de vencimiento deben ser fechas válidas",
+        message:
+          "La fecha de compra y fecha de vencimiento deben ser fechas válidas",
       });
     }
 
-    if (new Date(fechaVencimiento) <= new Date(fechaCompra)) {
+    if (fechaVencimiento <= fechaCompra) {
       return response.status(400).json({
         status: 400,
-        message: "La fecha de vencimiento debe ser posterior a la fecha de compra",
-    });
+        message:
+          "La fecha de vencimiento debe ser posterior a la fecha de compra",
+      });
     }
 
     let inventario = await Inventario.create({
       id_prod: producto.id,
       cantidad: cantidadActual,
-      cantidad_inicial: cantidadInicial,
+      cantidad_inicial: cantidadActual,
       fecha_compra: fechaCompra,
       fecha_vencimiento: fechaVencimiento,
       lote_activo: lote_activo !== undefined ? lote_activo : true,
@@ -127,10 +128,10 @@ let createInventario = async (request, response) => {
       status: 201,
       message: "Inventario creado exitosamente",
       data: inventario.json(),
-		producto: {
-			codigo: producto.codigo,
-			nombre: producto.nombre
-		}
+      producto: {
+        codigo: producto.codigo,
+        nombre: producto.nombre,
+      },
     });
   } catch (error) {
     response.status(500).json({
@@ -228,8 +229,13 @@ let getInventarioByCodigo = async (request, response) => {
 
     let inventarios = await Inventario.findAll({
       where: { id_prod: producto.id },
-      include: [{ model: Producto, attributes: ["codigo", "nombre", "imagen"] }],
-      order: [["fecha_vencimiento", "ASC"], ["createdAt", "ASC"]],
+      include: [
+        { model: Producto, attributes: ["codigo", "nombre", "imagen"] },
+      ],
+      order: [
+        ["fecha_vencimiento", "ASC"],
+        ["createdAt", "ASC"],
+      ],
     });
 
     if (!inventarios.length) {
@@ -257,120 +263,196 @@ let getInventarioByCodigo = async (request, response) => {
 };
 
 let updateInventario = async (request, response) => {
-    try {
-        const { id } = request.params;
-        const { cantidad, fecha_vencimiento, lote_activo } = request.body;
+  try {
+    const { id } = request.params;
+    const { cantidad, fecha_vencimiento, lote_activo } = request.body;
 
-        if (!id) {
-            return response.status(400).json({
-                status: 400,
-                message: 'ID del lote de inventario es requerido'
-            });
-        }
-
-        // Verificar que no venga el body completamente vacío
-        if (cantidad === undefined && fecha_vencimiento === undefined && lote_activo === undefined) {
-            return response.status(400).json({
-                status: 400,
-                message: 'Debe enviar al menos un campo para actualizar'
-            });
-        }
-
-        let inventario = await Inventario.findByPk(id, {
-            include: [{ 
-                model: Producto, 
-                attributes: ['nombre', 'codigo', 'activo'] 
-            }]
-        });
-
-        if (!inventario) {
-            return response.status(404).json({
-                status: 404,
-                message: 'Lote de inventario no encontrado'
-            });
-        }
-
-        // No permitir tocar un lote cerrado
-        if (!inventario.lote_activo && lote_activo !== true) {
-            return response.status(409).json({
-                status: 409,
-                message: 'No se puede modificar un lote inactivo. Si desea reabrirlo, envíe lote_activo: true'
-            });
-        }
-
-        // --- Actualizar cantidad ---
-        if (cantidad !== undefined) {
-            const nuevaCantidad = Number(cantidad);
-
-            if (!Number.isInteger(nuevaCantidad) || nuevaCantidad < 0) {
-                return response.status(400).json({
-                    status: 400,
-                    message: 'La cantidad debe ser un número entero no negativo'
-                });
-            }
-
-            // Si la corrección supera la cantidad inicial, es un error de negocio
-            if (nuevaCantidad > inventario.cantidad_inicial) {
-                return response.status(400).json({
-                    status: 400,
-                    message: `La cantidad no puede superar la cantidad inicial del lote (${inventario.cantidad_inicial})`
-                });
-            }
-
-            inventario.cantidad = nuevaCantidad;
-
-            // Cierre automático si el lote llega a 0
-            if (nuevaCantidad === 0) {
-                inventario.lote_activo = false;
-            }
-        }
-
-        // --- Actualizar fecha de vencimiento ---
-        if (fecha_vencimiento !== undefined) {
-            const nuevaFecha = normalizeDate(fecha_vencimiento);
-
-            if (!nuevaFecha) {
-                return response.status(400).json({
-                    status: 400,
-                    message: 'La fecha de vencimiento no es válida'
-                });
-            }
-
-            if (nuevaFecha.getTime() <= new Date(inventario.fecha_compra).getTime()) {
-                return response.status(400).json({
-                    status: 400,
-                    message: 'La fecha de vencimiento debe ser posterior a la fecha de compra'
-                });
-            }
-
-            inventario.fecha_vencimiento = nuevaFecha;
-        }
-
-        if (lote_activo !== undefined) {
-            if (typeof lote_activo !== 'boolean') {
-                return response.status(400).json({
-                    status: 400
-                    // log: 'El campo lote_activo debe ser un booleano'
-                });
-            }
-            inventario.lote_activo = lote_activo;
-        }
-
-        await inventario.save();
-
-        response.status(200).json({
-            status: 200,
-            message: 'Lote de inventario actualizado exitosamente',
-            data: inventario
-        });
-
-    } catch (error) {
-        response.status(500).json({
-            status: 500,
-            message: 'Error interno del servidor',
-            error: error.message
-        });
+    if (!id) {
+      return response.status(400).json({
+        status: 400,
+        message: "ID del lote de inventario es requerido",
+      });
     }
+
+    if (
+      cantidad === undefined &&
+      fecha_vencimiento === undefined &&
+      lote_activo === undefined
+    ) {
+      return response.status(400).json({
+        status: 400,
+        message: "Debe enviar al menos un campo para actualizar",
+      });
+    }
+
+    let inventario = await Inventario.findByPk(id, {
+      include: [
+        {
+          model: Producto,
+          attributes: ["nombre", "codigo", "activo"],
+        },
+      ],
+    });
+
+    if (!inventario) {
+      return response.status(404).json({
+        status: 404,
+        message: "Lote de inventario no encontrado",
+      });
+    }
+
+    if (!inventario.lote_activo && lote_activo !== true) {
+      return response.status(409).json({
+        status: 409,
+        message:
+          "No se puede modificar un lote inactivo. Si desea reabrirlo, envíe lote_activo: true",
+      });
+    }
+
+    if (cantidad !== undefined) {
+      const nuevaCantidad = Number(cantidad);
+
+      if (!Number.isInteger(nuevaCantidad) || nuevaCantidad < 0) {
+        return response.status(400).json({
+          status: 400,
+          message: "La cantidad debe ser un número entero no negativo",
+        });
+      }
+
+      if (nuevaCantidad > inventario.cantidad_inicial) {
+        return response.status(400).json({
+          status: 400,
+          message: `La cantidad no puede superar la cantidad inicial del lote (${inventario.cantidad_inicial})`,
+        });
+      }
+
+      inventario.cantidad = nuevaCantidad;
+
+      if (nuevaCantidad === 0) {
+        inventario.lote_activo = false;
+      }
+    }
+
+    if (fecha_vencimiento !== undefined) {
+      const nuevaFecha = normalizeDate(fecha_vencimiento);
+
+      if (!nuevaFecha) {
+        return response.status(400).json({
+          status: 400,
+          message: "La fecha de vencimiento no es válida",
+        });
+      }
+
+      if (nuevaFecha.getTime() <= new Date(inventario.fecha_compra).getTime()) {
+        return response.status(400).json({
+          status: 400,
+          message:
+            "La fecha de vencimiento debe ser posterior a la fecha de compra",
+        });
+      }
+
+      inventario.fecha_vencimiento = nuevaFecha;
+    }
+
+    if (lote_activo !== undefined) {
+      if (typeof lote_activo !== "boolean") {
+        return response.status(400).json({
+          status: 400,
+          // log: 'El campo lote_activo debe ser un booleano'
+        });
+      }
+      inventario.lote_activo = lote_activo;
+    }
+
+    await inventario.save();
+
+    response.status(200).json({
+      status: 200,
+      message: "Lote de inventario actualizado exitosamente",
+      data: inventario,
+    });
+  } catch (error) {
+    response.status(500).json({
+      status: 500,
+      message: "Error interno del servidor",
+      error: error.message,
+    });
+  }
+};
+
+let getAlertasPorVencer = async (request, response) => {
+  try {
+    const diasRaw = request.query.dias !== undefined ? Number(request.query.dias) : 30;
+ 
+    if (!Number.isInteger(diasRaw) || diasRaw < 0) {
+      return response.status(400).json({
+        status: 400,
+        message: "El parámetro dias debe ser un número entero no negativo",
+      });
+    }
+ 
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+ 
+    const fechaLimite = new Date(hoy);
+    fechaLimite.setDate(fechaLimite.getDate() + diasRaw);
+ 
+    // Traemos lotes activos que vencen en el rango [hoy - sin límite inferior, fechaLimite]
+    // Incluimos los ya vencidos (fecha_vencimiento < hoy) para que el frontend los pueda marcar en rojo
+    const lotes = await Inventario.findAll({
+      where: {
+        lote_activo: true,
+        fecha_vencimiento: { [Op.lte]: fechaLimite },
+      },
+      include: [
+        {
+          model: Producto,
+          attributes: ["codigo", "nombre", "imagen"],
+          where: { activo: true },
+        },
+      ],
+      order: [["fecha_vencimiento", "ASC"]],
+    });
+ 
+    if (!lotes.length) {
+      return response.status(200).json({
+        status: 200,
+        message: `No hay lotes activos que venzan en los próximos ${diasRaw} días`,
+        data: [],
+      });
+    }
+ 
+    const data = lotes.map((lote) => {
+      const fechaVenc = new Date(lote.fecha_vencimiento);
+      fechaVenc.setHours(0, 0, 0, 0);
+      const diasParaVencer = Math.round(
+        (fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
+      );
+ 
+      return {
+        id_lote: lote.id,
+        codigo: lote.Producto.codigo,
+        nombre: lote.Producto.nombre,
+        imagen: lote.Producto.imagen,
+        cantidad: lote.cantidad,
+        fecha_vencimiento: lote.fecha_vencimiento,
+        dias_para_vencer: diasParaVencer, // si esta negativo es pq ya venció
+        vencido: diasParaVencer < 0,
+      };
+    });
+ 
+    response.status(200).json({
+      status: 200,
+      message: `Se encontraron ${data.length} lote(s) que vencen en los próximos ${diasRaw} días`,
+      data,
+    });
+  } catch (error) {
+    response.status(500).json({
+      status: 500,
+      message: "Error interno del servidor",
+      error: error.message,
+    });
+  }
 };
 
 module.exports = {
@@ -378,5 +460,5 @@ module.exports = {
   getInventarios,
   getInventarioByCodigo,
   updateInventario,
-
+  getAlertasPorVencer,
 };
