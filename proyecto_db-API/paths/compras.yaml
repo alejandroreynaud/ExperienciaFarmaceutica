@@ -1,0 +1,105 @@
+paths:
+  /compras/fecha:
+    get:
+      summary: Obtener compras por fecha
+      tags: [Compras]
+      parameters:
+        - name: fecha
+          in: query
+          required: true
+          description: Fecha exacta para filtrar compras (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: "2024-06-15"
+      responses:
+        '200':
+          description: Compras encontradas
+          content:
+            application/json:
+              example:
+                status: 200
+                data:
+                  - id: 1
+                    proveedor_id: 3
+                    fecha: "2024-06-15"
+                    total: 1500.00
+                  - id: 2
+                    proveedor_id: 5
+                    fecha: "2024-06-15"
+                    total: 800.00
+        '204':
+          description: No se encontraron compras para esa fecha
+          content:
+            application/json:
+              example:
+                status: 204
+                message: "No se encontraron compras para esa fecha"
+        '400':
+          description: Fecha no enviada
+          content:
+            application/json:
+              example:
+                status: 400
+                message: "Debe enviar una fecha"
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              example:
+                status: 500
+                message: "Error interno del servidor"
+
+  /compras:
+    post:
+      summary: Registrar nueva compra
+      tags: [Compras]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proveedor_id
+                - fecha
+                - total
+              properties:
+                proveedor_id:
+                  type: integer
+                  example: 3
+                fecha:
+                  type: string
+                  format: date
+                  example: "2024-06-15"
+                total:
+                  type: number
+                  format: float
+                  example: 1500.00
+      responses:
+        '201':
+          description: Compra registrada correctamente
+          content:
+            application/json:
+              example:
+                status: 201
+                message: "Compra registrada correctamente"
+                data:
+                  id: 1
+                  proveedor_id: 3
+                  fecha: "2024-06-15"
+                  total: 1500.00
+        '400':
+          description: Datos obligatorios faltantes
+          content:
+            application/json:
+              example:
+                status: 400
+                message: "Proveedor, fecha y total son obligatorios"
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              example:
+                status: 500
+                message: "Error interno del servidor"
