@@ -22,7 +22,7 @@
                 nullable: true
                 example: https://example.com/paracetamol.jpg
     responses:
-      '201':
+      "201":
         description: Producto creado exitosamente
         content:
           application/json:
@@ -35,22 +35,22 @@
                 codigo: PARA-500
                 imagen: null
                 activo: true
-                createdAt: '2026-02-26T21:27:26.000Z'
-                updatedAt: '2026-02-26T21:27:26.000Z'
-      '400':
+                createdAt: "2026-02-26T21:27:26.000Z"
+                updatedAt: "2026-02-26T21:27:26.000Z"
+      "400":
         description: Faltan campos obligatorios
         content:
           application/json:
             example:
               message: Faltan campos obligatorios
               status: 400
-      '409':
+      "409":
         description: El nombre o código ya existe
         content:
           application/json:
             example:
               error: El producto ya existe
-      '500':
+      "500":
         description: Error interno del servidor
         content:
           application/json:
@@ -64,7 +64,7 @@
     summary: Obtener todos los productos
     description: Retorna la lista completa de productos registrados.
     responses:
-      '200':
+      "200":
         description: Lista de productos
         content:
           application/json:
@@ -77,9 +77,9 @@
                 codigo: PARA-500
                 imagen: null
                 activo: true
-                createdAt: '2026-02-26T21:27:26.000Z'
-                updatedAt: '2026-02-26T21:27:26.000Z'
-      '500':
+                createdAt: "2026-02-26T21:27:26.000Z"
+                updatedAt: "2026-02-26T21:27:26.000Z"
+      "500":
         description: Error interno del servidor
         content:
           application/json:
@@ -101,7 +101,7 @@
         type: string
       example: Paracetamol 500mg
     responses:
-      '200':
+      "200":
         description: Producto encontrado
         content:
           application/json:
@@ -114,23 +114,23 @@
                 codigo: PARA-500
                 imagen: null
                 activo: true
-                createdAt: '2026-02-26T21:27:26.000Z'
-                updatedAt: '2026-02-26T21:27:26.000Z'
-      '400':
+                createdAt: "2026-02-26T21:27:26.000Z"
+                updatedAt: "2026-02-26T21:27:26.000Z"
+      "400":
         description: Faltan campos obligatorios
         content:
           application/json:
             example:
               message: Faltan campos obligatorios
               status: 400
-      '404':
+      "404":
         description: Producto no encontrado
         content:
           application/json:
             example:
               message: Producto no encontrado
               status: 404
-      '500':
+      "500":
         description: Error interno del servidor
         content:
           application/json:
@@ -169,7 +169,7 @@
                 type: string
                 example: https://example.com/nueva-imagen.jpg
     responses:
-      '200':
+      "200":
         description: Producto actualizado exitosamente
         content:
           application/json:
@@ -182,30 +182,30 @@
                 codigo: PARA-1G
                 imagen: https://example.com/nueva-imagen.jpg
                 activo: true
-                createdAt: '2026-02-26T21:27:26.000Z'
-                updatedAt: '2026-03-19T00:00:00.000Z'
-      '400':
+                createdAt: "2026-02-26T21:27:26.000Z"
+                updatedAt: "2026-03-19T00:00:00.000Z"
+      "400":
         description: Faltan campos o código vacío
         content:
           application/json:
             example:
               message: El codigo del producto es obligatorio
               status: 400
-      '404':
+      "404":
         description: Producto no encontrado
         content:
           application/json:
             example:
               message: Producto no encontrado
               status: 404
-      '409':
+      "409":
         description: El nombre o código ya pertenece a otro producto
         content:
           application/json:
             example:
               message: El nombre del producto ya existe
               status: 409
-      '500':
+      "500":
         description: Error interno del servidor
         content:
           application/json:
@@ -228,7 +228,7 @@
         type: integer
       example: 1
     responses:
-      '200':
+      "200":
         description: Producto desactivado exitosamente
         content:
           application/json:
@@ -240,28 +240,83 @@
                 codigo: PARA-500
                 nombre: Paracetamol 500mg
                 activo: false
-      '400':
+      "400":
         description: ID requerido
         content:
           application/json:
             example:
               message: ID del producto es requerido
               status: 400
-      '404':
+      "404":
         description: Producto no encontrado
         content:
           application/json:
             example:
               message: Producto no encontrado
               status: 404
-      '409':
+      "409":
         description: Ya inactivo, o tiene lotes activos con stock
         content:
           application/json:
             example:
               status: 409
               message: No se puede desactivar el producto porque tiene 2 lote(s) activo(s) con stock disponible. Cierra o agota los lotes antes de desactivarlo
-      '500':
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: Error interno del servidor
+              status: 500
+              error: Detalle técnico del error
+
+/productos/{id}/activar:
+  patch:
+    tags: [ Productos ]
+    summary: Activar producto
+    description: Reactiva un producto previamente desactivado.
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+    responses:
+      "200":
+        description: Producto activado exitosamente
+        content:
+          application/json:
+            example:
+              status: 200
+              message: Producto activado exitosamente
+              data:
+                id: 1
+                codigo: PARA-500
+                nombre: Paracetamol 500mg
+                activo: true
+      "400":
+        description: ID requerido
+        content:
+          application/json:
+            example:
+              message: ID del producto es requerido
+              status: 400
+      "404":
+        description: Producto no encontrado
+        content:
+          application/json:
+            example:
+              message: Producto no encontrado
+              status: 404
+      "409":
+        description: El producto ya está activo
+        content:
+          application/json:
+            example:
+              message: El producto ya está activo
+              status: 409
+      "500":
         description: Error interno del servidor
         content:
           application/json:
