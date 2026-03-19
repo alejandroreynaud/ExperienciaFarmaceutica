@@ -2,6 +2,29 @@ const { Op } = require("sequelize");
 const { Inventario, Producto } = require("../models");
 const db = require("../config/config");
 
+exports.getTotalInventario = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        COALESCE(SUM(cantidad), 0) AS total_unidades
+      FROM inventario
+      WHERE lote_activo = true
+    `;
+
+    const [rows] = await db.query(query);
+
+    res.json({
+      total: parseInt(rows[0].total_unidades)
+    });
+
+  } catch (error) {
+    console.error("Error en total inventario:", error);
+    res.status(500).json({
+      message: "Error obteniendo total de inventario"
+    });
+  }
+};
+
 exports.getProximosVencer = async (req, res) => {
   try {
     const query = `

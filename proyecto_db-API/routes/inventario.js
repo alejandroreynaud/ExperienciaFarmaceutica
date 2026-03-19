@@ -8,7 +8,7 @@ router.get('/inventario', inventarioController.getInventarios);
 router.get('/inventario/:codigo', inventarioController.getInventarioByCodigo);
 router.get("/bajo-stock", inventarioController.getBajoStock);
 router.get("/proximos-vencer", inventarioController.getProximosVencer);
-
+router.get("/total", inventarioController.getTotalInventario);
 
 
 module.exports = router;
