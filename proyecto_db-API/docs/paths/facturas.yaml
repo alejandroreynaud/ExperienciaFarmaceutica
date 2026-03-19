@@ -1,0 +1,82 @@
+/facturas:
+  post:
+    summary: Crear factura
+    tags: [Facturas]
+
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id_venta:
+                type: integer
+                example: 2
+              num_factura:
+                type: string
+                example: "FAC-001"
+              fecha:
+                type: string
+                example: "2026-03-19"
+              url_imagen:
+                type: string
+                example: "factura.png"
+              hash_doc:
+                type: string
+                example: "abc123"
+
+    responses:
+      "201":
+        description: Factura creada correctamente
+
+      "400":
+        description: Esta venta ya tiene una factura
+
+      "404":
+        description: La venta no existe
+
+      "500":
+        description: Error del servidor
+
+/facturas/{id}:
+  get:
+    summary: Obtener factura por ID
+    tags: [Facturas]
+
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    responses:
+      "200":
+        description: Factura encontrada
+
+      "404":
+        description: Factura no encontrada
+
+      "500":
+        description: Error del servidor
+
+/facturas/fecha:
+  get:
+    summary: Obtener facturas por fecha
+    tags: [Facturas]
+
+    parameters:
+      - in: query
+        name: fecha
+        required: true
+        schema:
+          type: string
+          example: "2026-03-19"
+
+    responses:
+      "200":
+        description: Lista de facturas
+
+      "500":
+        description: Error del servidor
