@@ -2,6 +2,44 @@ const { Op } = require("sequelize");
 const { Inventario, Producto } = require("../models");
 const db = require("../config/config");
 
+exports.getProximosVencer = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        i.id_lote,
+        p.nombre AS producto,
+        i.cantidad,
+        i.fecha_vencimiento,
+        DATEDIFF(i.fecha_vencimiento, CURDATE()) AS dias_restantes
+      FROM inventario i
+      JOIN productos p ON i.id_prod = p.id_prod
+      WHERE i.lote_activo = true
+        AND i.cantidad > 0
+        AND i.fecha_vencimiento IS NOT NULL
+        AND DATEDIFF(i.fecha_vencimiento, CURDATE()) BETWEEN 0 AND 30
+      ORDER BY dias_restantes ASC
+    `;
+
+    const [rows] = await db.query(query);
+
+    const resultado = rows.map(row => ({
+      id_lote: row.id_lote,
+      producto: row.producto,
+      cantidad: row.cantidad,
+      fecha_vencimiento: row.fecha_vencimiento,
+      dias_restantes: row.dias_restantes
+    }));
+
+    res.json(resultado);
+
+  } catch (error) {
+    console.error("Error en proximos a vencer:", error);
+    res.status(500).json({
+      message: "Error obteniendo productos próximos a vencer"
+    });
+  }
+};
+
 exports.getBajoStock = async (req, res) => {
   try {
     const query = `
