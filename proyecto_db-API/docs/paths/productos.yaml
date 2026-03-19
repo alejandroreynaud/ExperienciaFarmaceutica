@@ -1,0 +1,271 @@
+/productos:
+  post:
+    tags: [ Productos ]
+    summary: Crear producto
+    description: Crea un nuevo producto. El nombre y el código deben ser únicos.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ nombre, codigo ]
+            properties:
+              nombre:
+                type: string
+                example: Paracetamol 500mg
+              codigo:
+                type: string
+                example: PARA-500
+              imagen:
+                type: string
+                nullable: true
+                example: https://example.com/paracetamol.jpg
+    responses:
+      '201':
+        description: Producto creado exitosamente
+        content:
+          application/json:
+            example:
+              message: Producto creado exitosamente
+              status: 201
+              data:
+                id: 1
+                nombre: Paracetamol 500mg
+                codigo: PARA-500
+                imagen: null
+                activo: true
+                createdAt: '2026-02-26T21:27:26.000Z'
+                updatedAt: '2026-02-26T21:27:26.000Z'
+      '400':
+        description: Faltan campos obligatorios
+        content:
+          application/json:
+            example:
+              message: Faltan campos obligatorios
+              status: 400
+      '409':
+        description: El nombre o código ya existe
+        content:
+          application/json:
+            example:
+              error: El producto ya existe
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: Error interno del servidor
+              status: 500
+              error: Detalle técnico del error
+
+  get:
+    tags: [ Productos ]
+    summary: Obtener todos los productos
+    description: Retorna la lista completa de productos registrados.
+    responses:
+      '200':
+        description: Lista de productos
+        content:
+          application/json:
+            example:
+              message: Productos obtenidos exitosamente
+              status: 200
+              data:
+              - id: 1
+                nombre: Paracetamol 500mg
+                codigo: PARA-500
+                imagen: null
+                activo: true
+                createdAt: '2026-02-26T21:27:26.000Z'
+                updatedAt: '2026-02-26T21:27:26.000Z'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: Error interno del servidor
+              status: 500
+              error: Detalle técnico del error
+
+/productos/nombre/{nombre}:
+  get:
+    tags: [ Productos ]
+    summary: Obtener producto por nombre
+    description: Retorna un producto buscando por nombre exacto.
+    parameters:
+    - name: nombre
+      in: path
+      required: true
+      schema:
+        type: string
+      example: Paracetamol 500mg
+    responses:
+      '200':
+        description: Producto encontrado
+        content:
+          application/json:
+            example:
+              message: Producto obtenido exitosamente
+              status: 200
+              data:
+                id: 1
+                nombre: Paracetamol 500mg
+                codigo: PARA-500
+                imagen: null
+                activo: true
+                createdAt: '2026-02-26T21:27:26.000Z'
+                updatedAt: '2026-02-26T21:27:26.000Z'
+      '400':
+        description: Faltan campos obligatorios
+        content:
+          application/json:
+            example:
+              message: Faltan campos obligatorios
+              status: 400
+      '404':
+        description: Producto no encontrado
+        content:
+          application/json:
+            example:
+              message: Producto no encontrado
+              status: 404
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: Error interno del servidor
+              status: 500
+              error: Detalle técnico del error
+
+/productos/{id}:
+  patch:
+    tags: [ Productos ]
+    summary: Actualizar producto
+    description: >
+      Actualiza nombre, imagen o código de un producto. Solo se actualizan los campos que se envíen. No se puede enviar codigo vacío si el producto ya tiene uno asignado.
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Paracetamol 1g
+              codigo:
+                type: string
+                example: PARA-1G
+              imagen:
+                type: string
+                example: https://example.com/nueva-imagen.jpg
+    responses:
+      '200':
+        description: Producto actualizado exitosamente
+        content:
+          application/json:
+            example:
+              message: Producto actualizado exitosamente
+              status: 200
+              data:
+                id: 1
+                nombre: Paracetamol 1g
+                codigo: PARA-1G
+                imagen: https://example.com/nueva-imagen.jpg
+                activo: true
+                createdAt: '2026-02-26T21:27:26.000Z'
+                updatedAt: '2026-03-19T00:00:00.000Z'
+      '400':
+        description: Faltan campos o código vacío
+        content:
+          application/json:
+            example:
+              message: El codigo del producto es obligatorio
+              status: 400
+      '404':
+        description: Producto no encontrado
+        content:
+          application/json:
+            example:
+              message: Producto no encontrado
+              status: 404
+      '409':
+        description: El nombre o código ya pertenece a otro producto
+        content:
+          application/json:
+            example:
+              message: El nombre del producto ya existe
+              status: 409
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: Error interno del servidor
+              status: 500
+              error: Detalle técnico del error
+
+/productos/{id}/desactivar:
+  patch:
+    tags: [ Productos ]
+    summary: Desactivar producto (soft delete)
+    description: >
+      Marca el producto como inactivo sin eliminarlo. No se puede desactivar si tiene lotes activos con stock mayor a 0.
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+    responses:
+      '200':
+        description: Producto desactivado exitosamente
+        content:
+          application/json:
+            example:
+              status: 200
+              message: Producto desactivado exitosamente
+              data:
+                id: 1
+                codigo: PARA-500
+                nombre: Paracetamol 500mg
+                activo: false
+      '400':
+        description: ID requerido
+        content:
+          application/json:
+            example:
+              message: ID del producto es requerido
+              status: 400
+      '404':
+        description: Producto no encontrado
+        content:
+          application/json:
+            example:
+              message: Producto no encontrado
+              status: 404
+      '409':
+        description: Ya inactivo, o tiene lotes activos con stock
+        content:
+          application/json:
+            example:
+              status: 409
+              message: No se puede desactivar el producto porque tiene 2 lote(s) activo(s) con stock disponible. Cierra o agota los lotes antes de desactivarlo
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: Error interno del servidor
+              status: 500
+              error: Detalle técnico del error

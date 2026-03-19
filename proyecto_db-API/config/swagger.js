@@ -27,8 +27,8 @@ if (fs.existsSync(pathsDir)) {
 const swaggerSetup = (app) => {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
     explorer: true,
-    customSiteTitle: "Experiencia Farmaceutica API Documentation"
+    customSiteTitle: "API Documentation"
   }));
-}
+};
 
 module.exports = swaggerSetup;
