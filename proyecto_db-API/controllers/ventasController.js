@@ -27,6 +27,62 @@ exports.getVentasHoy = async (req, res) => {
   }
 };
 
+exports.getVentasSemanal = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        DAYOFWEEK(fecha) AS dia_num,
+        COALESCE(SUM(total), 0) AS total
+      FROM ventas
+      WHERE YEARWEEK(fecha, 1) = YEARWEEK(CURDATE(), 1)
+        AND estado = true
+      GROUP BY dia_num
+    `;
+
+    const [rows] = await db.query(query);
+
+    // Mapeo de días
+    const dias = {
+      1: "Dom",
+      2: "Lun",
+      3: "Mar",
+      4: "Mié",
+      5: "Jue",
+      6: "Vie",
+      7: "Sáb"
+    };
+
+    // Inicializar semana completa en 0
+    const semana = [
+      { dia: "Lun", total: 0 },
+      { dia: "Mar", total: 0 },
+      { dia: "Mié", total: 0 },
+      { dia: "Jue", total: 0 },
+      { dia: "Vie", total: 0 },
+      { dia: "Sáb", total: 0 },
+      { dia: "Dom", total: 0 }
+    ];
+
+    // Llenar con datos reales
+    rows.forEach(row => {
+      const nombreDia = dias[row.dia_num];
+
+      const index = semana.findIndex(d => d.dia === nombreDia);
+      if (index !== -1) {
+        semana[index].total = parseFloat(row.total);
+      }
+    });
+
+    res.json(semana);
+
+  } catch (error) {
+    console.error("Error en ventas semanales:", error);
+    res.status(500).json({
+      message: "Error obteniendo ventas semanales"
+    });
+  }
+};
+
 let getVentasFecha = async (request, response) => {
     try {
 
