@@ -7,5 +7,6 @@ router.get("/productos/getAll", productos.getProductos);
 router.get("/productos/:nombre", productos.getProductoByName);
 router.put("/productos/:id", productos.updateProducto);
 router.put("/productos/desactivar/:id", productos.desactivarProducto);
+router.put("/productos/activar/:id", productos.activarProducto);
 
 module.exports = router;
