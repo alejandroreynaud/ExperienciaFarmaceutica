@@ -3,6 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+const swaggerSetup = require('./config/swagger');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -32,6 +33,9 @@ app.use('/api', facturasRoutes);
 app.use('/api', inventarioRoutes);
 app.use('/api', clientesRoutes);
 app.use('/api', comprasRoutes);
+
+
+swaggerSetup(app);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
