@@ -2,6 +2,59 @@ const { Op } = require("sequelize");
 const { Inventario, Producto } = require("../models");
 const db = require("../config/config");
 
+const PDFDocument = require("pdfkit");
+
+exports.exportarInventarioPDF = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        p.nombre,
+        p.codigo,
+        p.precio,
+        p.costo,
+        p.categoria,
+        SUM(i.cantidad) AS cantidad
+      FROM productos p
+      LEFT JOIN inventario i 
+        ON p.id_prod = i.id_prod AND i.lote_activo = true
+      GROUP BY p.id_prod
+    `;
+
+    const [rows] = await db.query(query);
+
+    // Crear PDF
+    const doc = new PDFDocument({ margin: 30, size: "A4" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=inventario.pdf");
+
+    doc.pipe(res);
+
+    //  TÍTULO
+    doc.fontSize(18).text("Reporte de Inventario", { align: "center" });
+    doc.moveDown();
+
+    // 🔹 ENCABEZADOS
+    doc.fontSize(10).text("Nombre | Código | Precio | Cantidad | Categoría");
+    doc.moveDown(0.5);
+
+    // 🔹 DATOS
+    rows.forEach((row) => {
+      doc.text(
+        `${row.nombre} | ${row.codigo} | L. ${row.precio} | ${row.cantidad || 0} | ${row.categoria}`
+      );
+    });
+
+    doc.end();
+
+  } catch (error) {
+    console.error("Error exportando PDF:", error);
+    res.status(500).json({
+      message: "Error al exportar inventario"
+    });
+  }
+};
+
 exports.getTotalInventario = async (req, res) => {
   try {
     const query = `
