@@ -1,5 +1,42 @@
 const { Op } = require("sequelize");
 const { Inventario, Producto } = require("../models");
+const db = require("../config/config");
+
+exports.getBajoStock = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        p.id_prod,
+        p.nombre,
+        SUM(i.cantidad) AS stock_actual,
+        SUM(i.cantidad_inicial) AS stock_inicial,
+        (SUM(i.cantidad) / SUM(i.cantidad_inicial)) * 100 AS porcentaje
+      FROM inventario i
+      JOIN productos p ON i.id_prod = p.id_prod
+      WHERE i.lote_activo = true
+      GROUP BY p.id_prod, p.nombre
+      HAVING porcentaje <= 30
+    `;
+
+    const [rows] = await db.query(query);
+
+    const resultado = rows.map(row => ({
+      id_prod: row.id_prod,
+      nombre: row.nombre,
+      stock_actual: parseInt(row.stock_actual),
+      stock_inicial: parseInt(row.stock_inicial),
+      porcentaje: parseFloat(row.porcentaje).toFixed(2)
+    }));
+
+    res.json(resultado);
+
+  } catch (error) {
+    console.error("Error en bajo stock:", error);
+    res.status(500).json({
+      message: "Error obteniendo productos con bajo stock"
+    });
+  }
+};
 
 const normalizeDate = (value) => {
   const date = new Date(value);
