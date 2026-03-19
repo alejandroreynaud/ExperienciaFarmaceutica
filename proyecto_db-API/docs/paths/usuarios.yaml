@@ -1,0 +1,415 @@
+/usuarios:
+  get:
+    tags: [ Usuarios ]
+    summary: Obtener todos los usuarios
+    description: Retorna la lista paginada de usuarios. No incluye la contraseña.
+    parameters:
+    - name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        example: 1
+    - name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        example: 20
+    responses:
+      "200":
+        description: Lista paginada de usuarios
+        content:
+          application/json:
+            example:
+              total: 50
+              pagina: 1
+              porPagina: 20
+              usuarios:
+              - id: 1
+                nombre: Juan Pérez
+                correo: juan@farmacia.com
+                telefono: "9999-8888"
+                estado: true
+                createdAt: "2026-02-26T21:27:26.000Z"
+                updatedAt: "2026-02-26T21:27:26.000Z"
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: Error interno del servidor
+
+  post:
+    tags: [ Usuarios ]
+    summary: Crear usuario
+    description: >
+      Crea un nuevo usuario. El correo debe ser único y tener formato válido. La contraseña debe tener al menos 8 caracteres y se almacena hasheada.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ nombre, telefono, correo, password ]
+            properties:
+              nombre:
+                type: string
+                example: Juan Pérez
+              telefono:
+                type: string
+                example: "9999-8888"
+              correo:
+                type: string
+                example: juan@farmacia.com
+              password:
+                type: string
+                example: "MiPassword123"
+              estado:
+                type: boolean
+                example: true
+    responses:
+      "201":
+        description: Usuario creado exitosamente (sin password)
+        content:
+          application/json:
+            example:
+              id: 1
+              nombre: Juan Pérez
+              correo: juan@farmacia.com
+              telefono: "9999-8888"
+              estado: true
+              createdAt: "2026-02-26T21:27:26.000Z"
+              updatedAt: "2026-02-26T21:27:26.000Z"
+      "400":
+        description: Faltan campos obligatorios o formato inválido
+        content:
+          application/json:
+            examples:
+              camposFaltantes:
+                summary: Campos requeridos faltantes
+                value:
+                  error: Nombre, correo, telefono y contrasena son requeridos
+                  status: 400
+              correoInvalido:
+                summary: Formato de correo inválido
+                value:
+                  error: Formato de correo invalido
+                  status: 400
+              passwordCorta:
+                summary: Contraseña muy corta
+                value:
+                  error: La contrasena debe tener al menos 8 caracteres
+                  status: 400
+      "409":
+        description: El correo ya está registrado
+        content:
+          application/json:
+            example:
+              error: El correo ya esta registrado
+              status: 409
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: Error interno del servidor
+              status: 500
+
+/usuarios/buscar:
+  get:
+    tags: [ Usuarios ]
+    summary: Buscar usuarios por filtros
+    description: >
+      Filtra usuarios por correo (parcial), nombre (parcial) o estado. Debe enviarse al menos un filtro.
+    parameters:
+    - name: correo
+      in: query
+      required: false
+      schema:
+        type: string
+        example: juan
+    - name: nombre
+      in: query
+      required: false
+      schema:
+        type: string
+        example: Pérez
+    - name: estado
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [ "true", "false" ]
+        example: "true"
+    responses:
+      "200":
+        description: Lista de usuarios que coinciden con los filtros
+        content:
+          application/json:
+            example:
+            - id: 1
+              nombre: Juan Pérez
+              correo: juan@farmacia.com
+              telefono: "9999-8888"
+              estado: true
+              createdAt: "2026-02-26T21:27:26.000Z"
+              updatedAt: "2026-02-26T21:27:26.000Z"
+      "400":
+        description: No se envió ningún filtro, o estado con valor inválido
+        content:
+          application/json:
+            examples:
+              sinFiltros:
+                summary: Sin filtros
+                value:
+                  error:
+                  Debe enviar al menos un filtro: correo, nombre o estado
+              estadoInvalido:
+                summary: Estado inválido
+                value:
+                  error: El filtro estado debe ser true o false
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: Error interno del servidor
+
+/usuarios/{id}:
+  patch:
+    tags: [ Usuarios ]
+    summary: Actualizar usuario
+    description: >
+      Actualiza nombre, teléfono, correo o estado de un usuario. Solo se actualizan los campos enviados. La contraseña se maneja en un endpoint separado.
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Juan Pérez Actualizado
+              telefono:
+                type: string
+                example: "8888-7777"
+              correo:
+                type: string
+                example: juannuevo@farmacia.com
+              estado:
+                type: boolean
+                example: true
+    responses:
+      "200":
+        description: Usuario actualizado exitosamente (sin password)
+        content:
+          application/json:
+            example:
+              id: 1
+              nombre: Juan Pérez Actualizado
+              correo: juannuevo@farmacia.com
+              telefono: "8888-7777"
+              estado: true
+              createdAt: "2026-02-26T21:27:26.000Z"
+              updatedAt: "2026-03-19T00:00:00.000Z"
+      "400":
+        description: ID inválido o formato de correo incorrecto
+        content:
+          application/json:
+            examples:
+              idInvalido:
+                summary: ID inválido
+                value:
+                  error: El id del usuario es invalido
+              correoInvalido:
+                summary: Formato de correo inválido
+                value:
+                  error: Formato de correo invalido
+      "404":
+        description: Usuario no encontrado
+        content:
+          application/json:
+            example:
+              error: Usuario no encontrado
+      "409":
+        description: El correo ya está en uso por otro usuario
+        content:
+          application/json:
+            example:
+              error: El correo ya esta en uso
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: Error interno del servidor
+
+/usuarios/{id}/estado:
+  patch:
+    tags: [ Usuarios ]
+    summary: Cambiar estado del usuario
+    description: >
+      Alterna el estado del usuario entre habilitado y deshabilitado. Si está activo lo desactiva, y viceversa.
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+    responses:
+      "200":
+        description: Estado cambiado exitosamente
+        content:
+          application/json:
+            examples:
+              habilitado:
+                summary: Usuario habilitado
+                value:
+                  message: Usuario habilitado correctamente
+                  id: 1
+                  estado: true
+                  status: 200
+              deshabilitado:
+                summary: Usuario deshabilitado
+                value:
+                  message: Usuario deshabilitado correctamente
+                  id: 1
+                  estado: false
+                  status: 200
+      "400":
+        description: ID inválido
+        content:
+          application/json:
+            example:
+              error: El id del usuario es invalido
+              status: 400
+      "404":
+        description: Usuario no encontrado
+        content:
+          application/json:
+            example:
+              error: Usuario no encontrado
+              status: 404
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: Error interno del servidor
+              status: 500
+
+/usuarios/{id}/status:
+  get:
+    tags: [ Usuarios ]
+    summary: Verificar estado del usuario
+    description: Retorna únicamente el id y estado (activo/inactivo) de un usuario.
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+    responses:
+      "200":
+        description: Estado del usuario
+        content:
+          application/json:
+            example:
+              id: 1
+              estado: true
+              status: 200
+      "400":
+        description: ID inválido
+        content:
+          application/json:
+            example:
+              error: El id es invalido
+              status: 400
+      "404":
+        description: Usuario no encontrado
+        content:
+          application/json:
+            example:
+              error: No se encontro el usuario
+              status: 404
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: Error interno del servidor
+              status: 500
+
+/usuarios/login:
+  post:
+    tags: [ Usuarios ]
+    summary: Login de usuario
+    description: >
+      Autentica un usuario con correo y contraseña. Retorna los datos del usuario y sus roles. No retorna token (manejo de sesión externo).
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ correo, password ]
+            properties:
+              correo:
+                type: string
+                example: juan@farmacia.com
+              password:
+                type: string
+                example: "MiPassword123"
+    responses:
+      "200":
+        description: Login exitoso
+        content:
+          application/json:
+            example:
+              message: Login exitoso
+              status: 200
+              usuario:
+                id: 1
+                nombre: Juan Pérez
+                correo: juan@farmacia.com
+                roles:
+                - administrador
+      "400":
+        description: Faltan correo o contraseña
+        content:
+          application/json:
+            example:
+              error: Correo y contrasena son requeridos
+              status: 400
+      "401":
+        description: Credenciales inválidas
+        content:
+          application/json:
+            example:
+              error: Credenciales invalidas
+              status: 401
+      "403":
+        description: Cuenta deshabilitada
+        content:
+          application/json:
+            example:
+              error: Tu cuenta esta deshabilitada, contacta al administrador
+              status: 403
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: Error interno del servidor
+              status: 500
