@@ -256,8 +256,127 @@ let getInventarioByCodigo = async (request, response) => {
   }
 };
 
+let updateInventario = async (request, response) => {
+    try {
+        const { id } = request.params;
+        const { cantidad, fecha_vencimiento, lote_activo } = request.body;
+
+        if (!id) {
+            return response.status(400).json({
+                status: 400,
+                message: 'ID del lote de inventario es requerido'
+            });
+        }
+
+        // Verificar que no venga el body completamente vacío
+        if (cantidad === undefined && fecha_vencimiento === undefined && lote_activo === undefined) {
+            return response.status(400).json({
+                status: 400,
+                message: 'Debe enviar al menos un campo para actualizar'
+            });
+        }
+
+        let inventario = await Inventario.findByPk(id, {
+            include: [{ 
+                model: Producto, 
+                attributes: ['nombre', 'codigo', 'activo'] 
+            }]
+        });
+
+        if (!inventario) {
+            return response.status(404).json({
+                status: 404,
+                message: 'Lote de inventario no encontrado'
+            });
+        }
+
+        // No permitir tocar un lote cerrado
+        if (!inventario.lote_activo && lote_activo !== true) {
+            return response.status(409).json({
+                status: 409,
+                message: 'No se puede modificar un lote inactivo. Si desea reabrirlo, envíe lote_activo: true'
+            });
+        }
+
+        // --- Actualizar cantidad ---
+        if (cantidad !== undefined) {
+            const nuevaCantidad = Number(cantidad);
+
+            if (!Number.isInteger(nuevaCantidad) || nuevaCantidad < 0) {
+                return response.status(400).json({
+                    status: 400,
+                    message: 'La cantidad debe ser un número entero no negativo'
+                });
+            }
+
+            // Si la corrección supera la cantidad inicial, es un error de negocio
+            if (nuevaCantidad > inventario.cantidad_inicial) {
+                return response.status(400).json({
+                    status: 400,
+                    message: `La cantidad no puede superar la cantidad inicial del lote (${inventario.cantidad_inicial})`
+                });
+            }
+
+            inventario.cantidad = nuevaCantidad;
+
+            // Cierre automático si el lote llega a 0
+            if (nuevaCantidad === 0) {
+                inventario.lote_activo = false;
+            }
+        }
+
+        // --- Actualizar fecha de vencimiento ---
+        if (fecha_vencimiento !== undefined) {
+            const nuevaFecha = normalizeDate(fecha_vencimiento);
+
+            if (!nuevaFecha) {
+                return response.status(400).json({
+                    status: 400,
+                    message: 'La fecha de vencimiento no es válida'
+                });
+            }
+
+            if (nuevaFecha.getTime() <= new Date(inventario.fecha_compra).getTime()) {
+                return response.status(400).json({
+                    status: 400,
+                    message: 'La fecha de vencimiento debe ser posterior a la fecha de compra'
+                });
+            }
+
+            inventario.fecha_vencimiento = nuevaFecha;
+        }
+
+        if (lote_activo !== undefined) {
+            if (typeof lote_activo !== 'boolean') {
+                return response.status(400).json({
+                    status: 400
+                    // log: 'El campo lote_activo debe ser un booleano'
+                });
+            }
+            inventario.lote_activo = lote_activo;
+        }
+
+        await inventario.save();
+
+        response.status(200).json({
+            status: 200,
+            message: 'Lote de inventario actualizado exitosamente',
+            data: inventario
+        });
+
+    } catch (error) {
+        response.status(500).json({
+            status: 500,
+            message: 'Error interno del servidor',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
   createInventario,
   getInventarios,
   getInventarioByCodigo,
+  updateInventario,
+
 };
