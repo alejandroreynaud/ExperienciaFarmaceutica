@@ -1,0 +1,40 @@
+paths:
+  /clientes/{id}:
+    get:
+      summary: Obtener cliente por ID
+      tags: [Clientes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del cliente
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              example:
+                status: 200
+                data:
+                  id: 1
+                  nombre: "Juan Pérez"
+                  identidad: "0801-1990-12345"
+                  RTN: "08011990123456"
+                  telefono: "9999-8888"
+        '404':
+          description: Cliente no encontrado
+          content:
+            application/json:
+              example:
+                status: 404
+                message: "Cliente no encontrado"
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              example:
+                status: 500
+                message: "Error interno del servidor"
