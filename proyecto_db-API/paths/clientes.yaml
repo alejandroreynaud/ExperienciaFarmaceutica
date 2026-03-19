@@ -38,3 +38,63 @@ paths:
               example:
                 status: 500
                 message: "Error interno del servidor"
+
+    put:
+      summary: Actualizar cliente por ID
+      tags: [Clientes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del cliente a actualizar
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                  example: "Juan Pérez"
+                identidad:
+                  type: string
+                  example: "0801-1990-12345"
+                RTN:
+                  type: string
+                  nullable: true
+                  example: "08011990123456"
+                telefono:
+                  type: string
+                  example: "9999-8888"
+      responses:
+        '200':
+          description: Cliente actualizado correctamente
+          content:
+            application/json:
+              example:
+                status: 200
+                message: "Cliente actualizado correctamente"
+                data:
+                  id: 1
+                  nombre: "Juan Pérez"
+                  identidad: "0801-1990-12345"
+                  RTN: "08011990123456"
+                  telefono: "9999-8888"
+        '404':
+          description: Cliente no encontrado
+          content:
+            application/json:
+              example:
+                status: 404
+                message: "Cliente no encontrado"
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              example:
+                status: 500
+                message: "Error interno del servidor"
