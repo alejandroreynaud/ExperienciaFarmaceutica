@@ -59,7 +59,6 @@
     responses:
       "200":
         description: Venta creada correctamente
-        
 
 /ventas/{id}:
   get:
