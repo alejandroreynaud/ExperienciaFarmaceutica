@@ -27,6 +27,73 @@ exports.getVentasHoy = async (req, res) => {
   }
 };
 
+exports.getVentasMensual = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        MONTH(fecha) AS mes_num,
+        COALESCE(SUM(total), 0) AS total
+      FROM ventas
+      WHERE YEAR(fecha) = YEAR(CURDATE())
+        AND estado = true
+      GROUP BY mes_num
+      ORDER BY mes_num ASC
+    `;
+
+    const [rows] = await db.query(query);
+
+    // Nombres de meses
+    const meses = {
+      1: "Ene",
+      2: "Feb",
+      3: "Mar",
+      4: "Abr",
+      5: "May",
+      6: "Jun",
+      7: "Jul",
+      8: "Ago",
+      9: "Sep",
+      10: "Oct",
+      11: "Nov",
+      12: "Dic"
+    };
+
+    // Inicializar todos los meses en 0
+    const resultado = [
+      { mes: "Ene", total: 0 },
+      { mes: "Feb", total: 0 },
+      { mes: "Mar", total: 0 },
+      { mes: "Abr", total: 0 },
+      { mes: "May", total: 0 },
+      { mes: "Jun", total: 0 },
+      { mes: "Jul", total: 0 },
+      { mes: "Ago", total: 0 },
+      { mes: "Sep", total: 0 },
+      { mes: "Oct", total: 0 },
+      { mes: "Nov", total: 0 },
+      { mes: "Dic", total: 0 }
+    ];
+
+    // Llenar con datos reales
+    rows.forEach(row => {
+      const nombreMes = meses[row.mes_num];
+
+      const index = resultado.findIndex(m => m.mes === nombreMes);
+      if (index !== -1) {
+        resultado[index].total = parseFloat(row.total);
+      }
+    });
+
+    res.json(resultado);
+
+  } catch (error) {
+    console.error("Error en ventas mensuales:", error);
+    res.status(500).json({
+      message: "Error obteniendo ventas mensuales"
+    });
+  }
+};
+
 exports.getVentasSemanal = async (req, res) => {
   try {
     const query = `
