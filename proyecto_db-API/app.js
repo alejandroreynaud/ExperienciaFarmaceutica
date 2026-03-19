@@ -13,6 +13,9 @@ var inventarioRoutes = require('./routes/inventario');
 var clientesRoutes = require('./routes/clientes');
 var comprasRoutes = require('./routes/compras');
 var app = express();
+const notificacionesRoutes = require("./routes/notificaciones");
+
+app.use("/notificaciones", notificacionesRoutes);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

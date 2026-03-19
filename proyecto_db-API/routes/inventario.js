@@ -6,5 +6,9 @@ router.post('/inventario', inventarioController.createInventario);
 router.get('/inventario', inventarioController.getInventarios);
 
 router.get('/inventario/:codigo', inventarioController.getInventarioByCodigo);
+router.get("/bajo-stock", inventarioController.getBajoStock);
+router.get("/proximos-vencer", inventarioController.getProximosVencer);
+router.get("/total", inventarioController.getTotalInventario);
+router.get("/exportar", inventarioController.exportarInventarioPDF);
 
 module.exports = router;
