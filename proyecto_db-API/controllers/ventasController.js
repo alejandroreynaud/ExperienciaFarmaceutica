@@ -1,4 +1,31 @@
 const { Venta, sequelize } = require("../models");
+const db = require("../config/config");
+
+exports.getVentasHoy = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        COALESCE(SUM(total), 0) AS total,
+        COUNT(*) AS cantidad_ventas
+      FROM ventas
+      WHERE DATE(fecha) = CURDATE()
+        AND estado = true
+    `;
+
+    const [rows] = await db.query(query);
+
+    res.json({
+      total: parseFloat(rows[0].total),
+      cantidad_ventas: rows[0].cantidad_ventas
+    });
+
+  } catch (error) {
+    console.error("Error en getVentasHoy:", error);
+    res.status(500).json({
+      message: "Error obteniendo ventas del día"
+    });
+  }
+};
 
 exports.getVentasSemanal = async (req, res) => {
   try {
