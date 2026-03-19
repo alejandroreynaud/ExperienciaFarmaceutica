@@ -43,9 +43,9 @@ let getProductos = async (request, response) => {
     try { 
         let productos = await Producto.findAll();
         if (productos.length === 0) {
-            return response.status(204).json({ 
+            return response.status(200).json({ 
                 message: 'No se encontraron productos',
-                status: 204
+                status: 200
             });
         }
         response.status(200).json({ 
