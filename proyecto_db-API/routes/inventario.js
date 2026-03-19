@@ -7,5 +7,6 @@ router.get('/inventario', inventarioController.getInventarios);
 
 router.get('/inventario/:codigo', inventarioController.getInventarioByCodigo);
 router.put('/inventario/:id', inventarioController.updateInventario);
+router.get('/inventario/alertas/vencer', inventarioController.getAlertasPorVencer);
 
 module.exports = router;

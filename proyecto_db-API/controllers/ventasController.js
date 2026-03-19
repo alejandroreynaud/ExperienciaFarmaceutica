@@ -1,7 +1,7 @@
 const { Venta, sequelize } = require("../models");
 const db = require("../config/config");
 
-exports.getVentasHoy = async (req, res) => {
+const getVentasHoy = async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -27,7 +27,7 @@ exports.getVentasHoy = async (req, res) => {
   }
 };
 
-exports.getVentasMensual = async (req, res) => {
+const getVentasMensual = async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -94,7 +94,7 @@ exports.getVentasMensual = async (req, res) => {
   }
 };
 
-exports.getVentasSemanal = async (req, res) => {
+const getVentasSemanal = async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -288,6 +288,9 @@ module.exports = {
     getVentasFecha,
     getVentaById,
     createVenta,
-    getVentasByCliente
+    getVentasByCliente,
+    getVentasSemanal,
+    getVentasMensual,
+    getVentasHoy
     
 };
