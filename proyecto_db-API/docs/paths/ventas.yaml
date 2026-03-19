@@ -26,39 +26,6 @@
       "500":
         description: Error del servidor
 
-  post:
-    summary: Crear una venta
-    tags: [Ventas]
-
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              id_vendedor:
-                type: integer
-                example: 1
-              id_cliente:
-                type: integer
-                example: 1
-              total:
-                type: number
-                example: 150.5
-              metodo_pago:
-                type: string
-                example: "efectivo"
-              estado:
-                type: boolean
-                example: true
-              fecha:
-                type: string
-                example: "2026-03-19"
-
-    responses:
-      "200":
-        description: Venta creada correctamente
 
 /ventas/{id}:
   get:
@@ -88,29 +55,3 @@
       "500":
         description: Error del servidor
 
-/ventas/cliente/{id_cliente}:
-  get:
-    summary: Obtener ventas por cliente
-    tags: [Ventas]
-
-    parameters:
-      - in: path
-        name: id_cliente
-        required: true
-        schema:
-          type: integer
-
-    responses:
-      "200":
-        description: Lista de ventas del cliente
-        content:
-          application/json:
-            example:
-              status: 200
-              data: []
-
-      "204":
-        description: No se encontraron ventas
-
-      "500":
-        description: Error del servidor
