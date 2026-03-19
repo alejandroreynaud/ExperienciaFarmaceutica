@@ -7,9 +7,8 @@ const docsPath = path.join(__dirname, '../docs');
 const swaggerDocument = YAML.load(path.join(docsPath, 'index.yaml'));
 
 const pathsDir = path.join(docsPath, 'paths');
-
 if (fs.existsSync(pathsDir)) {
-  const pathFiles = fs.readdirSync(pathsDir).filter(file => file.endsWith('.yaml'));
+  const pathFiles = fs.readdirSync(pathsDir).filter((file) => file.endsWith('.yaml'));
 
   swaggerDocument.paths = swaggerDocument.paths || {};
 
@@ -27,8 +26,8 @@ if (fs.existsSync(pathsDir)) {
 const swaggerSetup = (app) => {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
     explorer: true,
-    customSiteTitle: "API Documentation"
+    customSiteTitle: "Experiencia Farmaceutica API Documentation"
   }));
-};
+}
 
 module.exports = swaggerSetup;
