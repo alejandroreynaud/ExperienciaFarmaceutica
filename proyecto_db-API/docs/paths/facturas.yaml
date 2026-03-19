@@ -39,9 +39,10 @@
       "500":
         description: Error del servidor
 
+
 /facturas/{id}:
   get:
-    summary: Obtener factura por ID
+    summary: Obtener factura por Id
     tags: [Facturas]
 
     parameters:
@@ -57,26 +58,6 @@
 
       "404":
         description: Factura no encontrada
-
-      "500":
-        description: Error del servidor
-
-/facturas/fecha:
-  get:
-    summary: Obtener facturas por fecha
-    tags: [Facturas]
-
-    parameters:
-      - in: query
-        name: fecha
-        required: true
-        schema:
-          type: string
-          example: "2026-03-19"
-
-    responses:
-      "200":
-        description: Lista de facturas
 
       "500":
         description: Error del servidor
