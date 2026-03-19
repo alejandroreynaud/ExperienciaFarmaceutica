@@ -23,6 +23,7 @@ if (fs.existsSync(pathsDir)) {
   });
 }
 
+
 const swaggerSetup = (app) => {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
     explorer: true,
