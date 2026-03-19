@@ -382,21 +382,22 @@ let updateInventario = async (request, response) => {
 
 let getAlertasPorVencer = async (request, response) => {
   try {
-    const diasRaw = request.query.dias !== undefined ? Number(request.query.dias) : 30;
- 
+    const diasRaw =
+      request.query.dias !== undefined ? Number(request.query.dias) : 30;
+
     if (!Number.isInteger(diasRaw) || diasRaw < 0) {
       return response.status(400).json({
         status: 400,
         message: "El parámetro dias debe ser un número entero no negativo",
       });
     }
- 
+
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
- 
+
     const fechaLimite = new Date(hoy);
     fechaLimite.setDate(fechaLimite.getDate() + diasRaw);
- 
+
     // Traemos lotes activos que vencen en el rango [hoy - sin límite inferior, fechaLimite]
     // Incluimos los ya vencidos (fecha_vencimiento < hoy) para que el frontend los pueda marcar en rojo
     const lotes = await Inventario.findAll({
@@ -413,7 +414,7 @@ let getAlertasPorVencer = async (request, response) => {
       ],
       order: [["fecha_vencimiento", "ASC"]],
     });
- 
+
     if (!lotes.length) {
       return response.status(200).json({
         status: 200,
@@ -421,14 +422,14 @@ let getAlertasPorVencer = async (request, response) => {
         data: [],
       });
     }
- 
+
     const data = lotes.map((lote) => {
       const fechaVenc = new Date(lote.fecha_vencimiento);
       fechaVenc.setHours(0, 0, 0, 0);
       const diasParaVencer = Math.round(
-        (fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
+        (fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24),
       );
- 
+
       return {
         id_lote: lote.id,
         codigo: lote.Producto.codigo,
@@ -440,11 +441,96 @@ let getAlertasPorVencer = async (request, response) => {
         vencido: diasParaVencer < 0,
       };
     });
- 
+
     response.status(200).json({
       status: 200,
       message: `Se encontraron ${data.length} lote(s) que vencen en los próximos ${diasRaw} días`,
       data,
+    });
+  } catch (error) {
+    response.status(500).json({
+      status: 500,
+      message: "Error interno del servidor",
+      error: error.message,
+    });
+  }
+};
+
+let getReporteStockTotal = async (request, response) => {
+  try {
+    const { codigo, nombre } = request.query;
+
+    const whereProducto = {};
+
+    const codigoProducto = cleanString(codigo);
+    const nombreProducto = cleanString(nombre);
+
+    if (codigo !== undefined && !codigoProducto) {
+      return response.status(400).json({
+        status: 400,
+        message: "Debe ingresar un codigo válido para el producto",
+      });
+    }
+
+    if (nombre !== undefined && !nombreProducto) {
+      return response.status(400).json({
+        status: 400,
+        message: "El nombre no puede ser vacío",
+      });
+    }
+
+    if (codigoProducto) {
+      whereProducto.codigo = codigoProducto;
+    }
+
+    if (nombreProducto) {
+      whereProducto.nombre = { [Op.iLike]: `%${nombreProducto}%` };
+    }
+
+    const productos = await Producto.findAll({
+      where: whereProducto,
+      attributes: ["id", "codigo", "nombre", "imagen", "activo"],
+      include: [
+        {
+          model: Inventario,
+          attributes: ["cantidad", "lote_activo"],
+          required: false,
+        },
+      ],
+      order: [["nombre", "ASC"]],
+    });
+
+    if (!productos.length) {
+      return response.status(404).json({
+        status: 404,
+        message: "No se encontraron productos para los filtros enviados",
+      });
+    }
+
+    const reporte = productos.map((prod) => {
+      const todosLosLotes = prod.Inventarios || [];
+      const lotesActivos = todosLosLotes.filter((l) => l.lote_activo);
+      const stockTotal = lotesActivos.reduce(
+        (sum, lote) => sum + lote.cantidad,
+        0,
+      );
+
+      return {
+        codigo: prod.codigo,
+        nombre: prod.nombre,
+        imagen: prod.imagen,
+        activo: prod.activo,
+        stock_total: stockTotal,
+        lotes_activos: lotesActivos.length,
+        lotes_totales: todosLosLotes.length,
+      };
+    });
+
+    response.status(200).json({
+      status: 200,
+      message: "Reporte de stock total obtenido exitosamente",
+      total_productos: reporte.length,
+      data: reporte,
     });
   } catch (error) {
     response.status(500).json({
@@ -461,4 +547,5 @@ module.exports = {
   getInventarioByCodigo,
   updateInventario,
   getAlertasPorVencer,
+  getReporteStockTotal,
 };
