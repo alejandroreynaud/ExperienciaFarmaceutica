@@ -1,0 +1,213 @@
+/inventario:
+  post:
+    summary: Crear lote de inventario
+    tags: [Inventario]
+
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              codigo:
+                type: string
+                example: "MED-001"
+              nombre:
+                type: string
+                example: "Paracetamol"
+              cantidad:
+                type: integer
+                example: 100
+              fecha_compra:
+                type: string
+                example: "2026-03-01"
+              fecha_vencimiento:
+                type: string
+                example: "2027-03-01"
+              lote_activo:
+                type: boolean
+                example: true
+              precio_costo:
+                type: number
+                example: 10.50
+              precio_venta:
+                type: number
+                example: 15.00
+
+    responses:
+      "201":
+        description: Inventario creado exitosamente
+      "400":
+        description: Datos inválidos o faltantes
+      "404":
+        description: Producto no encontrado
+      "409":
+        description: El producto está inactivo
+      "500":
+        description: Error del servidor
+
+
+  get:
+    summary: Obtener inventarios con filtros opcionales
+    tags: [Inventario]
+
+    parameters:
+      - in: query
+        name: codigo
+        required: false
+        schema:
+          type: string
+          example: "MED-001"
+      - in: query
+        name: nombre
+        required: false
+        schema:
+          type: string
+          example: "Paracetamol"
+
+    responses:
+      "200":
+        description: Lista de inventarios obtenida exitosamente
+      "400":
+        description: Filtro inválido
+      "404":
+        description: No hay registros para los filtros enviados
+      "500":
+        description: Error del servidor
+
+
+inventario/{codigo}:
+  get:
+    summary: Obtener inventario por código de producto
+    tags: [Inventario]
+
+    parameters:
+      - in: path
+        name: codigo
+        required: true
+        schema:
+          type: string
+          example: "MED-001"
+
+    responses:
+      "200":
+        description: Inventario obtenido exitosamente
+      "400":
+        description: Código inválido
+      "404":
+        description: Producto o inventario no encontrado
+      "500":
+        description: Error del servidor
+
+
+inventario/lote/{id}:
+  put:
+    summary: Actualizar lote de inventario
+    tags: [Inventario]
+
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          example: 1
+
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              cantidad:
+                type: integer
+                example: 80
+              fecha_vencimiento:
+                type: string
+                example: "2027-06-01"
+              lote_activo:
+                type: boolean
+                example: true
+              precio_costo:
+                type: number
+                example: 10.50
+              precio_venta:
+                type: number
+                example: 15.00
+
+    responses:
+      "200":
+        description: Lote actualizado exitosamente
+      "400":
+        description: Datos inválidos
+      "404":
+        description: Lote no encontrado
+      "409":
+        description: No se puede modificar un lote inactivo
+      "500":
+        description: Error del servidor
+
+inventario/alertas/porVencer:
+  get:
+    summary: Obtener lotes próximos a vencer
+    tags: [Inventario]
+
+    parameters:
+      - in: query
+        name: dias
+        required: false
+        schema:
+          type: integer
+          example: 30
+
+    responses:
+      "200":
+        description: Lista de lotes próximos a vencer
+      "400":
+        description: El parámetro dias no es válido
+      "500":
+        description: Error del servidor
+
+
+inventario/alertas/bajoStock:
+  get:
+    summary: Obtener productos con bajo stock
+    tags: [Inventario]
+
+    responses:
+      "200":
+        description: Lista de productos con stock bajo
+      "500":
+        description: Error del servidor
+
+
+inventario/reporte/stockTotal:
+  get:
+    summary: Obtener reporte de stock total por producto
+    tags: [Inventario]
+
+    parameters:
+      - in: query
+        name: codigo
+        required: false
+        schema:
+          type: string
+          example: "MED-001"
+      - in: query
+        name: nombre
+        required: false
+        schema:
+          type: string
+          example: "Paracetamol"
+
+    responses:
+      "200":
+        description: Reporte de stock total obtenido exitosamente
+      "400":
+        description: Filtro inválido
+      "404":
+        description: No se encontraron productos
+      "500":
+        description: Error del servidor
