@@ -13,7 +13,9 @@ const {
 router.post('/login', login);
 router.get('/', getAllUsuarios);
 router.get('/filtrar', getUsuariosFiltrados);
+router.get('/buscar', getUsuariosFiltrados);
 router.post('/', createUsuario);
+router.patch('/:id', updateUsuario);
 router.put('/:id', updateUsuario);
 router.patch('/:id/estado', cambiarEstadoUsuario);
 router.get('/:id/status', checkStatus);
