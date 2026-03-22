@@ -1,6 +1,8 @@
 const { Op } = require("sequelize");
 const { Inventario, Producto } = require("../models");
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 const normalizeDate = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -10,7 +12,6 @@ const normalizeDate = (value) => {
   return date;
 };
 
-// Función para limpiar y validar cadenas de texto
 const cleanString = (value) => {
   if (typeof value !== "string") {
     return null;
@@ -28,6 +29,8 @@ let createInventario = async (request, response) => {
       fecha_compra,
       fecha_vencimiento,
       lote_activo,
+      precio_costo,
+      precio_venta,
     } = request.body;
 
     if (!codigo && !nombre) {
@@ -39,19 +42,26 @@ let createInventario = async (request, response) => {
 
     if (
       cantidad === undefined ||
+      cantidad === "" ||
       !fecha_compra ||
       !fecha_vencimiento ||
-      cantidad === "" ||
       fecha_compra === "" ||
-      fecha_vencimiento === ""
+      fecha_vencimiento === "" ||
+      precio_costo === undefined ||
+      precio_costo === "" ||
+      precio_venta === undefined ||
+      precio_venta === ""
     ) {
       return response.status(400).json({
         status: 400,
-        message: "Faltan campos obligatorios de inventario",
+        message:
+          "Faltan campos obligatorios: cantidad, fecha_compra, fecha_vencimiento, precio_costo, precio_venta",
       });
     }
 
-    const whereClause = codigo ? { codigo: codigo } : { nombre: nombre };
+    const whereClause = codigo
+      ? { codigo: cleanString(codigo) }
+      : { nombre: cleanString(nombre) };
 
     if (!Object.values(whereClause)[0]) {
       return response.status(400).json({
@@ -77,6 +87,8 @@ let createInventario = async (request, response) => {
     }
 
     const cantidadActual = Number(cantidad);
+    const costo = Number(precio_costo);
+    const venta = Number(precio_venta);
     const fechaCompra = normalizeDate(fecha_compra);
     const fechaVencimiento = normalizeDate(fecha_vencimiento);
 
@@ -84,6 +96,27 @@ let createInventario = async (request, response) => {
       return response.status(400).json({
         status: 400,
         message: "La cantidad debe ser un numero entero positivo",
+      });
+    }
+
+    if (isNaN(costo) || costo < 0) {
+      return response.status(400).json({
+        status: 400,
+        message: "El precio_costo debe ser un número no negativo",
+      });
+    }
+
+    if (isNaN(venta) || venta <= 0) {
+      return response.status(400).json({
+        status: 400,
+        message: "El precio_venta debe ser un número positivo",
+      });
+    }
+
+    if (venta < costo) {
+      return response.status(400).json({
+        status: 400,
+        message: "El precio_venta no puede ser menor al precio_costo",
       });
     }
 
@@ -122,12 +155,14 @@ let createInventario = async (request, response) => {
       fecha_compra: fechaCompra,
       fecha_vencimiento: fechaVencimiento,
       lote_activo: lote_activo !== undefined ? lote_activo : true,
+      precio_costo: costo,
+      precio_venta: venta,
     });
 
     response.status(201).json({
       status: 201,
       message: "Inventario creado exitosamente",
-      data: inventario.json(),
+      data: inventario.toJSON(),
       producto: {
         codigo: producto.codigo,
         nombre: producto.nombre,
@@ -164,13 +199,9 @@ let getInventarios = async (request, response) => {
       });
     }
 
-    if (codigoProducto) {
-      whereProducto.codigo = codigoProducto;
-    }
-
-    if (nombreProducto) {
+    if (codigoProducto) whereProducto.codigo = codigoProducto;
+    if (nombreProducto)
       whereProducto.nombre = { [Op.iLike]: `%${nombreProducto}%` };
-    }
 
     let inventarios = await Inventario.findAll({
       include: [
@@ -181,6 +212,7 @@ let getInventarios = async (request, response) => {
           required: Object.keys(whereProducto).length > 0,
         },
       ],
+      order: [["fecha_vencimiento", "ASC"]],
     });
 
     if (!inventarios.length) {
@@ -203,6 +235,7 @@ let getInventarios = async (request, response) => {
     });
   }
 };
+
 
 let getInventarioByCodigo = async (request, response) => {
   try {
@@ -262,10 +295,17 @@ let getInventarioByCodigo = async (request, response) => {
   }
 };
 
+
 let updateInventario = async (request, response) => {
   try {
     const { id } = request.params;
-    const { cantidad, fecha_vencimiento, lote_activo } = request.body;
+    const {
+      cantidad,
+      fecha_vencimiento,
+      lote_activo,
+      precio_costo,
+      precio_venta,
+    } = request.body;
 
     if (!id) {
       return response.status(400).json({
@@ -277,7 +317,9 @@ let updateInventario = async (request, response) => {
     if (
       cantidad === undefined &&
       fecha_vencimiento === undefined &&
-      lote_activo === undefined
+      lote_activo === undefined &&
+      precio_costo === undefined &&
+      precio_venta === undefined
     ) {
       return response.status(400).json({
         status: 400,
@@ -287,10 +329,7 @@ let updateInventario = async (request, response) => {
 
     let inventario = await Inventario.findByPk(id, {
       include: [
-        {
-          model: Producto,
-          attributes: ["nombre", "codigo", "activo"],
-        },
+        { model: Producto, attributes: ["nombre", "codigo", "activo"] },
       ],
     });
 
@@ -328,9 +367,7 @@ let updateInventario = async (request, response) => {
 
       inventario.cantidad = nuevaCantidad;
 
-      if (nuevaCantidad === 0) {
-        inventario.lote_activo = false;
-      }
+      if (nuevaCantidad === 0) inventario.lote_activo = false;
     }
 
     if (fecha_vencimiento !== undefined) {
@@ -358,10 +395,43 @@ let updateInventario = async (request, response) => {
       if (typeof lote_activo !== "boolean") {
         return response.status(400).json({
           status: 400,
-          // log: 'El campo lote_activo debe ser un booleano'
+          message: "El campo lote_activo debe ser un booleano",
         });
       }
       inventario.lote_activo = lote_activo;
+    }
+
+    if (precio_costo !== undefined) {
+      const nuevoCosto = Number(precio_costo);
+      if (isNaN(nuevoCosto) || nuevoCosto < 0) {
+        return response.status(400).json({
+          status: 400,
+          message: "El precio_costo debe ser un número no negativo",
+        });
+      }
+      inventario.precio_costo = nuevoCosto;
+    }
+
+    if (precio_venta !== undefined) {
+      const nuevoPrecioVenta = Number(precio_venta);
+      if (isNaN(nuevoPrecioVenta) || nuevoPrecioVenta <= 0) {
+        return response.status(400).json({
+          status: 400,
+          message: "El precio_venta debe ser un número positivo",
+        });
+      }
+      // Validar contra el costo actual (usando el nuevo si también viene)
+      const costoFinal =
+        precio_costo !== undefined
+          ? Number(precio_costo)
+          : parseFloat(inventario.precio_costo);
+      if (nuevoPrecioVenta < costoFinal) {
+        return response.status(400).json({
+          status: 400,
+          message: "El precio_venta no puede ser menor al precio_costo",
+        });
+      }
+      inventario.precio_venta = nuevoPrecioVenta;
     }
 
     await inventario.save();
@@ -398,8 +468,6 @@ let getAlertasPorVencer = async (request, response) => {
     const fechaLimite = new Date(hoy);
     fechaLimite.setDate(fechaLimite.getDate() + diasRaw);
 
-    // Traemos lotes activos que vencen en el rango [hoy - sin límite inferior, fechaLimite]
-    // Incluimos los ya vencidos (fecha_vencimiento < hoy) para que el frontend los pueda marcar en rojo
     const lotes = await Inventario.findAll({
       where: {
         lote_activo: true,
@@ -436,8 +504,9 @@ let getAlertasPorVencer = async (request, response) => {
         nombre: lote.Producto.nombre,
         imagen: lote.Producto.imagen,
         cantidad: lote.cantidad,
+        precio_venta: lote.precio_venta,
         fecha_vencimiento: lote.fecha_vencimiento,
-        dias_para_vencer: diasParaVencer, // si esta negativo es pq ya venció
+        dias_para_vencer: diasParaVencer,
         vencido: diasParaVencer < 0,
       };
     });
@@ -459,7 +528,6 @@ let getAlertasPorVencer = async (request, response) => {
 let getReporteStockTotal = async (request, response) => {
   try {
     const { codigo, nombre } = request.query;
-
     const whereProducto = {};
 
     const codigoProducto = cleanString(codigo);
@@ -479,13 +547,9 @@ let getReporteStockTotal = async (request, response) => {
       });
     }
 
-    if (codigoProducto) {
-      whereProducto.codigo = codigoProducto;
-    }
-
-    if (nombreProducto) {
+    if (codigoProducto) whereProducto.codigo = codigoProducto;
+    if (nombreProducto)
       whereProducto.nombre = { [Op.iLike]: `%${nombreProducto}%` };
-    }
 
     const productos = await Producto.findAll({
       where: whereProducto,
@@ -493,7 +557,7 @@ let getReporteStockTotal = async (request, response) => {
       include: [
         {
           model: Inventario,
-          attributes: ["cantidad", "lote_activo"],
+          attributes: ["cantidad", "lote_activo", "precio_venta"],
           required: false,
         },
       ],
@@ -515,12 +579,17 @@ let getReporteStockTotal = async (request, response) => {
         0,
       );
 
+      const precioVentaActual = lotesActivos.length
+        ? Math.min(...lotesActivos.map((l) => parseFloat(l.precio_venta)))
+        : null;
+
       return {
         codigo: prod.codigo,
         nombre: prod.nombre,
         imagen: prod.imagen,
         activo: prod.activo,
         stock_total: stockTotal,
+        precio_venta_actual: precioVentaActual,
         lotes_activos: lotesActivos.length,
         lotes_totales: todosLosLotes.length,
       };
@@ -546,6 +615,7 @@ module.exports = {
   getInventarios,
   getInventarioByCodigo,
   updateInventario,
+  //getAlertasBajoStock,
   getAlertasPorVencer,
   getReporteStockTotal,
 };

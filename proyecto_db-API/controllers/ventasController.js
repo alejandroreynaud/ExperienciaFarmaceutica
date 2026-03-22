@@ -1,4 +1,15 @@
-const { Venta, sequelize } = require("../models");
+const { Op } = require("sequelize");
+const {
+  Venta,
+  Factura,
+  DetalleFactura,
+  Movimiento,
+  CuentaPorCobrar,
+  Inventario,
+  Producto,
+  Cliente,
+  sequelize,
+} = require("../models");
 const db = require("../config/config");
 
 const getVentasHoy = async (req, res) => {
@@ -8,7 +19,7 @@ const getVentasHoy = async (req, res) => {
         COALESCE(SUM(total), 0) AS total,
         COUNT(*) AS cantidad_ventas
       FROM ventas
-      WHERE DATE(fecha) = CURDATE()
+      WHERE DATE(fecha) = CURRENT_DATE()
         AND estado = true
     `;
 
@@ -16,13 +27,12 @@ const getVentasHoy = async (req, res) => {
 
     res.json({
       total: parseFloat(rows[0].total),
-      cantidad_ventas: rows[0].cantidad_ventas
+      cantidad_ventas: rows[0].cantidad_ventas,
     });
-
   } catch (error) {
     console.error("Error en getVentasHoy:", error);
     res.status(500).json({
-      message: "Error obteniendo ventas del día"
+      message: "Error obteniendo ventas del día",
     });
   }
 };
@@ -34,7 +44,7 @@ const getVentasMensual = async (req, res) => {
         MONTH(fecha) AS mes_num,
         COALESCE(SUM(total), 0) AS total
       FROM ventas
-      WHERE YEAR(fecha) = YEAR(CURDATE())
+      WHERE YEAR(fecha) = YEAR(CURRENT_DATE())
         AND estado = true
       GROUP BY mes_num
       ORDER BY mes_num ASC
@@ -55,7 +65,7 @@ const getVentasMensual = async (req, res) => {
       9: "Sep",
       10: "Oct",
       11: "Nov",
-      12: "Dic"
+      12: "Dic",
     };
 
     // Inicializar todos los meses en 0
@@ -71,25 +81,24 @@ const getVentasMensual = async (req, res) => {
       { mes: "Sep", total: 0 },
       { mes: "Oct", total: 0 },
       { mes: "Nov", total: 0 },
-      { mes: "Dic", total: 0 }
+      { mes: "Dic", total: 0 },
     ];
 
     // Llenar con datos reales
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const nombreMes = meses[row.mes_num];
 
-      const index = resultado.findIndex(m => m.mes === nombreMes);
+      const index = resultado.findIndex((m) => m.mes === nombreMes);
       if (index !== -1) {
         resultado[index].total = parseFloat(row.total);
       }
     });
 
     res.json(resultado);
-
   } catch (error) {
     console.error("Error en ventas mensuales:", error);
     res.status(500).json({
-      message: "Error obteniendo ventas mensuales"
+      message: "Error obteniendo ventas mensuales",
     });
   }
 };
@@ -101,7 +110,7 @@ const getVentasSemanal = async (req, res) => {
         DAYOFWEEK(fecha) AS dia_num,
         COALESCE(SUM(total), 0) AS total
       FROM ventas
-      WHERE YEARWEEK(fecha, 1) = YEARWEEK(CURDATE(), 1)
+      WHERE YEARWEEK(fecha, 1) = YEARWEEK(CURRENT_DATE(), 1)
         AND estado = true
       GROUP BY dia_num
     `;
@@ -116,7 +125,7 @@ const getVentasSemanal = async (req, res) => {
       4: "Mié",
       5: "Jue",
       6: "Vie",
-      7: "Sáb"
+      7: "Sáb",
     };
 
     // Inicializar semana completa en 0
@@ -127,170 +136,410 @@ const getVentasSemanal = async (req, res) => {
       { dia: "Jue", total: 0 },
       { dia: "Vie", total: 0 },
       { dia: "Sáb", total: 0 },
-      { dia: "Dom", total: 0 }
+      { dia: "Dom", total: 0 },
     ];
 
     // Llenar con datos reales
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const nombreDia = dias[row.dia_num];
 
-      const index = semana.findIndex(d => d.dia === nombreDia);
+      const index = semana.findIndex((d) => d.dia === nombreDia);
       if (index !== -1) {
         semana[index].total = parseFloat(row.total);
       }
     });
 
     res.json(semana);
-
   } catch (error) {
     console.error("Error en ventas semanales:", error);
     res.status(500).json({
-      message: "Error obteniendo ventas semanales"
+      message: "Error obteniendo ventas semanales",
     });
   }
 };
 
 let getVentasFecha = async (request, response) => {
-    try {
+  try {
+    let ventas;
 
-        let ventas;
-
-        if (request.query.fecha) {
-
-            ventas = await Venta.findAll({
-                where: sequelize.where(
-                    sequelize.fn('DATE', sequelize.col('fecha')),
-                    request.query.fecha
-                )
-            });
-
-        } else {
-
-            ventas = await Venta.findAll();
-
-        }
-
-        if (ventas.length <= 0) {
-
-            response.status(204).json({
-                status: 204,
-                message: "No se encontraron ventas"
-            });
-
-        } else {
-
-            response.status(200).json({
-                status: 200,
-                data: ventas
-            });
-
-        }
-
-    } catch (error) {
-
-        response.status(500).json({
-            status: 500,
-            message: error.message
-        });
-
+    if (request.query.fecha) {
+      ventas = await Venta.findAll({
+        where: sequelize.where(
+          sequelize.fn("DATE", sequelize.col("fecha")),
+          request.query.fecha,
+        ),
+      });
+    } else {
+      ventas = await Venta.findAll();
     }
+
+    if (ventas.length <= 0) {
+      response.status(204).json({
+        status: 204,
+        message: "No se encontraron ventas",
+      });
+    } else {
+      response.status(200).json({
+        status: 200,
+        data: ventas,
+      });
+    }
+  } catch (error) {
+    response.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
 };
 
-
 let getVentaById = async (request, response) => {
-    try {
-
-        let venta = await Venta.findByPk(request.params.id);
-
-        if (!venta) {
-
-            response.status(204).json({
-                status: 204,
-                message: "Venta no encontrada"
-            });
-
-        } else {
-
-            response.status(200).json({
-                status: 200,
-                data: venta
-            });
-
-        }
-
-    } catch (error) {
-
-        response.status(500).json({
-            status: 500,
-            message: error.message
-        });
-
+  try {
+    let venta = await Venta.findByPk(request.params.id, {
+      include: [{ model: Factura, include: [{ model: DetalleFactura }] }],
+    });
+    if (!venta) {
+      response.status(204).json({
+        status: 204,
+        message: "Venta no encontrada",
+      });
+    } else {
+      response.status(200).json({
+        status: 200,
+        data: venta,
+      });
     }
+  } catch (error) {
+    response.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
 };
 
 let createVenta = async (request, response) => {
-    try {
+  const t = await sequelize.transaction();
 
-        let venta = await Venta.create(request.body);
+  try {
+    const { id_vendedor, id_cliente, metodo_pago, fecha, productos } =
+      request.body;
 
-        response.status(200).json({
-            status: 200,
-            data: venta
-        });
+    // ── Validaciones básicas ──────────────────────────────────────────────────
 
-    } catch (error) {
-
-        response.status(500).json({
-            status: 500,
-            message: error.message
-        });
-
+    if (!id_vendedor) {
+      await t.rollback();
+      return response
+        .status(400)
+        .json({ status: 400, message: "El id_vendedor es obligatorio" });
     }
+
+    if (!metodo_pago?.trim()) {
+      await t.rollback();
+      return response
+        .status(400)
+        .json({ status: 400, message: "El metodo_pago es obligatorio" });
+    }
+
+    if (!Array.isArray(productos) || productos.length === 0) {
+      await t.rollback();
+      return response
+        .status(400)
+        .json({ status: 400, message: "Debe enviar al menos un producto" });
+    }
+
+    // Crédito requiere cliente
+    if (metodo_pago.trim().toLowerCase() === "credito" && !id_cliente) {
+      await t.rollback();
+      return response.status(400).json({
+        status: 400,
+        message: "Las ventas a crédito requieren id_cliente",
+      });
+    }
+
+    // Validar cada item del carrito antes de tocar la BD
+    for (const item of productos) {
+      if (!item.codigo && !item.nombre) {
+        await t.rollback();
+        return response.status(400).json({
+          status: 400,
+          message: "Cada producto debe tener codigo o nombre",
+        });
+      }
+      const cant = Number(item.cantidad);
+      if (!Number.isInteger(cant) || cant <= 0) {
+        await t.rollback();
+        return response.status(400).json({
+          status: 400,
+          message: `La cantidad de "${item.codigo || item.nombre}" debe ser un entero positivo`,
+        });
+      }
+    }
+
+    // ── FEFO: procesar cada producto ──────────────────────────────────────────
+
+    // lotesConsumidos: datos para DetalleFactura y Movimiento
+    const lotesConsumidos = [];
+    let totalVenta = 0;
+
+    for (const item of productos) {
+      const cantidadSolicitada = Number(item.cantidad);
+
+      // Buscar producto — codigo tiene prioridad
+      const whereProducto = item.codigo
+        ? { codigo: item.codigo.trim() }
+        : { nombre: item.nombre.trim() };
+
+      const producto = await Producto.findOne({
+        where: whereProducto,
+        attributes: ["id", "codigo", "nombre", "activo"],
+        transaction: t,
+      });
+
+      if (!producto) {
+        await t.rollback();
+        return response.status(404).json({
+          status: 404,
+          message: `Producto no encontrado: "${item.codigo || item.nombre}"`,
+        });
+      }
+
+      if (!producto.activo) {
+        await t.rollback();
+        return response.status(409).json({
+          status: 409,
+          message: `El producto "${producto.nombre}" está inactivo`,
+        });
+      }
+
+      // Lotes activos con stock, ordenados FEFO
+      const lotes = await Inventario.findAll({
+        where: {
+          id_prod: producto.id,
+          lote_activo: true,
+          cantidad: { [Op.gt]: 0 },
+        },
+        order: [
+          ["fecha_vencimiento", "ASC"],
+          ["fecha_compra", "ASC"],
+        ],
+        transaction: t,
+      });
+
+      if (!lotes.length) {
+        await t.rollback();
+        return response.status(409).json({
+          status: 409,
+          message: `Sin stock disponible para "${producto.nombre}"`,
+        });
+      }
+
+      // Verificar stock total suficiente antes de descontar
+      const stockDisponible = lotes.reduce((sum, l) => sum + l.cantidad, 0);
+      if (stockDisponible < cantidadSolicitada) {
+        await t.rollback();
+        return response.status(409).json({
+          status: 409,
+          message: `Stock insuficiente para "${producto.nombre}". Disponible: ${stockDisponible}, solicitado: ${cantidadSolicitada}`,
+        });
+      }
+
+      // Descontar lote por lote (FEFO)
+      let pendiente = cantidadSolicitada;
+
+      for (const lote of lotes) {
+        if (pendiente <= 0) break;
+
+        const stockAntes = lote.cantidad;
+        const descontado = Math.min(pendiente, lote.cantidad);
+        const precioVenta = parseFloat(lote.precio_venta);
+        const subtotal = descontado * precioVenta;
+
+        lote.cantidad -= descontado;
+        pendiente -= descontado;
+
+        if (lote.cantidad === 0) lote.lote_activo = false;
+
+        await lote.save({ transaction: t });
+
+        lotesConsumidos.push({
+          id_lote: lote.id,
+          id_producto: producto.id,
+          cantidad: descontado,
+          subtotal,
+          stock_antes: stockAntes,
+          stock_despues: lote.cantidad,
+        });
+
+        totalVenta += subtotal;
+      }
+    }
+
+    // ── Crear Venta ───────────────────────────────────────────────────────────
+
+    const venta = await Venta.create(
+      {
+        id_vendedor,
+        id_cliente: id_cliente || null,
+        total: parseFloat(totalVenta.toFixed(2)),
+        metodo_pago: metodo_pago.trim(),
+        fecha: fecha ? new Date(fecha) : new Date(),
+        estado: true,
+      },
+      { transaction: t },
+    );
+
+    // ── Generar num_factura automático ────────────────────────────────────────
+    // Formato: FAC-YYYYMMDD-{id_venta}
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoy.getDate()).padStart(2, "0");
+    const numFactura = `FAC-${yyyy}${mm}${dd}-${venta.id}`;
+
+    // ── Crear Factura ─────────────────────────────────────────────────────────
+
+    const factura = await Factura.create(
+      {
+        id_venta: venta.id,
+        num_factura: numFactura,
+        fecha: venta.fecha,
+        url_imagen: null,
+        hash_doc: null,
+      },
+      { transaction: t },
+    );
+
+    // ── Crear DetalleFactura (un registro por lote consumido) ─────────────────
+
+    await DetalleFactura.bulkCreate(
+      lotesConsumidos.map((lc) => ({
+        id_factura: factura.id,
+        id_lote: lc.id_lote,
+        cantidad: lc.cantidad,
+        subtotal: lc.subtotal,
+      })),
+      { transaction: t },
+    );
+
+    // ── Registrar Movimientos (auditoría por lote) ────────────────────────────
+
+    await Movimiento.bulkCreate(
+      lotesConsumidos.map((lc) => ({
+        id_lote: lc.id_lote,
+        id_producto: lc.id_producto,
+        tipo: "VENTA",
+        id_referencia: factura.id,
+        tabla_referencia: "Facturas",
+        cantidad: lc.cantidad,
+        stock_antes: lc.stock_antes,
+        stock_despues: lc.stock_despues,
+        id_usuario: id_vendedor,
+        fecha: venta.fecha,
+      })),
+      { transaction: t },
+    );
+
+    // ── CuentaPorCobrar (solo si es crédito) ──────────────────────────────────
+
+    let cuentaPorCobrar = null;
+    if (metodo_pago.trim().toLowerCase() === "credito") {
+      cuentaPorCobrar = await CuentaPorCobrar.create(
+        {
+          id_factura: factura.id,
+          id_cliente: id_cliente,
+          saldo_pendiente: venta.total,
+          estado: true,
+          fecha_creado: new Date(),
+        },
+        { transaction: t },
+      );
+    }
+
+    // ── Todo OK: confirmar ────────────────────────────────────────────────────
+
+    await t.commit();
+
+    const respuesta = {
+      status: 201,
+      message: "Venta creada exitosamente",
+      data: {
+        venta: {
+          id: venta.id,
+          id_vendedor: venta.id_vendedor,
+          id_cliente: venta.id_cliente,
+          total: venta.total,
+          metodo_pago: venta.metodo_pago,
+          fecha: venta.fecha,
+          estado: venta.estado,
+        },
+        factura: {
+          id: factura.id,
+          num_factura: factura.num_factura,
+          fecha: factura.fecha,
+        },
+        detalle: lotesConsumidos.map((lc) => ({
+          id_lote: lc.id_lote,
+          cantidad: lc.cantidad,
+          subtotal: lc.subtotal,
+        })),
+      },
+    };
+
+    if (cuentaPorCobrar) {
+      respuesta.data.cuenta_por_cobrar = {
+        id: cuentaPorCobrar.id,
+        saldo_pendiente: cuentaPorCobrar.saldo_pendiente,
+        estado: cuentaPorCobrar.estado,
+      };
+    }
+
+    response.status(201).json(respuesta);
+  } catch (error) {
+    await t.rollback();
+    console.error("Error al crear venta:", error);
+    response.status(500).json({
+      status: 500,
+      message: "Error interno del servidor",
+      error: error.message,
+    });
+  }
 };
+
 let getVentasByCliente = async (request, response) => {
-    try {
+  try {
+    const { id_cliente } = request.params;
 
-        const { id_cliente } = request.params;
+    let ventas = await Venta.findAll({
+      where: {
+        id_cliente: id_cliente,
+      },
+    });
 
-        let ventas = await Venta.findAll({
-            where: {
-                id_cliente: id_cliente
-            }
-        });
-
-        if (ventas.length <= 0) {
-
-            response.status(204).json({
-                status: 204,
-                message: "No se encontraron ventas para el cliente con id " + id_cliente
-            });
-
-        } else {
-
-            response.status(200).json({
-                status: 200,
-                data: ventas
-            });
-
-        }
-
-    } catch (error) {
-
-        response.status(500).json({
-            status: 500,
-            message: error.message
-        });
-
+    if (ventas.length <= 0) {
+      response.status(204).json({
+        status: 204,
+        message:
+          "No se encontraron ventas para el cliente con id " + id_cliente,
+      });
+    } else {
+      response.status(200).json({
+        status: 200,
+        data: ventas,
+      });
     }
+  } catch (error) {
+    response.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
 };
 
 module.exports = {
-    getVentasFecha,
-    getVentaById,
-    createVenta,
-    getVentasByCliente,
-    getVentasSemanal,
-    getVentasMensual,
-    getVentasHoy
-    
+  getVentasFecha,
+  getVentaById,
+  createVenta,
+  getVentasByCliente,
+  getVentasSemanal,
+  getVentasMensual,
+  getVentasHoy,
 };
