@@ -616,6 +616,69 @@ let getReporteStockTotal = async (request, response) => {
   }
 };
 
+let getAlertasBajoStock = async (request, response) => {
+  try {
+    const umbralRaw =
+      request.query.umbral !== undefined ? Number(request.query.umbral) : 10;
+
+    if (!Number.isInteger(umbralRaw) || umbralRaw < 0) {
+      return response.status(400).json({
+        status: 400,
+        message: "El umbral debe ser un número entero no negativo",
+      });
+    }
+
+    const productos = await Producto.findAll({
+      where: { activo: true },
+      attributes: ["id", "codigo", "nombre", "imagen"],
+      include: [
+        {
+          model: Inventario,
+          attributes: ["cantidad"],
+          where: { lote_activo: true },
+          required: false,
+        },
+      ],
+    });
+
+    const productosConBajoStock = productos
+      .map((prod) => {
+        const stockTotal = prod.Inventarios
+          ? prod.Inventarios.reduce((sum, lote) => sum + lote.cantidad, 0)
+          : 0;
+        return {
+          codigo: prod.codigo,
+          nombre: prod.nombre,
+          imagen: prod.imagen,
+          stock_total: stockTotal,
+          umbral: umbralRaw,
+        };
+      })
+      .filter((prod) => prod.stock_total < umbralRaw)
+      .sort((a, b) => a.stock_total - b.stock_total);
+
+    if (!productosConBajoStock.length) {
+      return response.status(200).json({
+        status: 200,
+        message: `No hay productos con stock por debajo de ${umbralRaw} unidades`,
+        data: [],
+      });
+    }
+
+    response.status(200).json({
+      status: 200,
+      message: `Se encontraron ${productosConBajoStock.length} producto(s) con stock por debajo de ${umbralRaw} unidades`,
+      data: productosConBajoStock,
+    });
+  } catch (error) {
+    response.status(500).json({
+      status: 500,
+      message: "Error interno del servidor",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createInventario,
   getInventarios,
