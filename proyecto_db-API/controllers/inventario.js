@@ -59,9 +59,7 @@ let createInventario = async (request, response) => {
       });
     }
 
-    const whereClause = codigo
-      ? { codigo: cleanString(codigo) }
-      : { nombre: cleanString(nombre) };
+    const whereClause = codigo ? { codigo: codigo } : { nombre: nombre };
 
     if (!Object.values(whereClause)[0]) {
       return response.status(400).json({
@@ -367,7 +365,9 @@ let updateInventario = async (request, response) => {
 
       inventario.cantidad = nuevaCantidad;
 
-      if (nuevaCantidad === 0) inventario.lote_activo = false;
+      if (nuevaCantidad === 0) {
+        inventario.lote_activo = false;
+      }
     }
 
     if (fecha_vencimiento !== undefined) {
@@ -468,6 +468,8 @@ let getAlertasPorVencer = async (request, response) => {
     const fechaLimite = new Date(hoy);
     fechaLimite.setDate(fechaLimite.getDate() + diasRaw);
 
+    // Traemos lotes activos que vencen en el rango [hoy - sin límite inferior, fechaLimite]
+    // Incluimos los ya vencidos (fecha_vencimiento < hoy) para que el frontend los pueda marcar en rojo
     const lotes = await Inventario.findAll({
       where: {
         lote_activo: true,
@@ -547,9 +549,13 @@ let getReporteStockTotal = async (request, response) => {
       });
     }
 
-    if (codigoProducto) whereProducto.codigo = codigoProducto;
-    if (nombreProducto)
+    if (codigoProducto) {
+      whereProducto.codigo = codigoProducto;
+    }
+
+    if (nombreProducto) {
       whereProducto.nombre = { [Op.iLike]: `%${nombreProducto}%` };
+    }
 
     const productos = await Producto.findAll({
       where: whereProducto,
@@ -615,7 +621,7 @@ module.exports = {
   getInventarios,
   getInventarioByCodigo,
   updateInventario,
-  //getAlertasBajoStock,
+  getAlertasBajoStock,
   getAlertasPorVencer,
   getReporteStockTotal,
 };
