@@ -1,4 +1,9 @@
 .env
+<<<<<<< HEAD
 /node_modules
 /docker-compose.yml
 /Dockerfile
+=======
+node_modules/
+.DS_Store
+>>>>>>> 7cf9692 (Cambio gitignore node modules)
