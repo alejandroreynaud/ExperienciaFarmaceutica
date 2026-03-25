@@ -2,89 +2,292 @@
   get:
     summary: Obtener ventas por fecha
     tags: [Ventas]
-
     parameters:
       - in: query
         name: fecha
         required: false
         schema:
           type: string
-          example: "2026-03-19"
-
+          example: "2026-03-25"
+        description: Fecha en formato YYYY-MM-DD. Si no se envía, retorna todas las ventas.
     responses:
       "200":
-        description: Lista de ventas
+        description: Lista de ventas encontradas
         content:
           application/json:
             example:
               status: 200
-              data: []
-
+              data:
+                - id: 1
+                  id_vendedor: 1
+                  id_cliente: null
+                  total: "50"
+                  metodo_pago: "efectivo"
+                  estado: true
+                  fecha: "2026-03-25T00:14:17.082Z"
+                  Factura:
+                    id: 1
+                    num_factura: "FAC-20260325-1"
+                    fecha: "2026-03-25T00:14:17.082Z"
+                    DetalleFacturas:
+                      - id: 1
+                        cantidad: 2
+                        subtotal: "50"
+                        Inventario:
+                          id: 2
+                          precio_venta: "25.00"
+                          Producto:
+                            id: 2
+                            nombre: "Paracetamol 500mg"
+                            codigo: "FAR001"
       "204":
         description: No se encontraron ventas
-
       "500":
-        description: Error del servidor
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              status: 500
+              message: "Error interno del servidor"
 
   post:
     summary: Crear una venta
     tags: [Ventas]
-
     requestBody:
       required: true
       content:
         application/json:
           schema:
             type: object
+            required:
+              - id_vendedor
+              - metodo_pago
+              - productos
             properties:
               id_vendedor:
                 type: integer
                 example: 1
+                description: Obligatorio. Entero positivo.
               id_cliente:
                 type: integer
-                example: 1
-              total:
-                type: number
-                example: 150.5
+                nullable: true
+                example: null
+                description: Obligatorio si metodo_pago es "credito".
               metodo_pago:
                 type: string
+                enum: [efectivo, credito, tarjeta, transferencia]
                 example: "efectivo"
-              estado:
-                type: boolean
-                example: true
+                description: Obligatorio. Debe ser uno de los valores permitidos.
               fecha:
                 type: string
-                example: "2026-03-19"
-
+                nullable: true
+                example: "2026-03-25"
+                description: Opcional. Formato YYYY-MM-DD. Si no se envía se usa la fecha actual.
+              productos:
+                type: array
+                minItems: 1
+                description: Obligatorio. Al menos un producto.
+                items:
+                  type: object
+                  properties:
+                    codigo:
+                      type: string
+                      example: "FAR001"
+                      description: Código del producto. Tiene prioridad sobre nombre.
+                    nombre:
+                      type: string
+                      example: "Paracetamol 500mg"
+                      description: Nombre del producto. Usado si no se envía codigo.
+                    cantidad:
+                      type: integer
+                      example: 2
+                      description: Obligatorio. Entero positivo.
     responses:
-      "200":
-        description: Venta creada correctamente
+      "201":
+        description: Venta creada exitosamente
+        content:
+          application/json:
+            example:
+              status: 201
+              message: "Venta creada exitosamente"
+              data:
+                venta:
+                  id: 1
+                  id_vendedor: 1
+                  id_cliente: null
+                  total: 50.00
+                  metodo_pago: "efectivo"
+                  fecha: "2026-03-25T00:14:17.082Z"
+                  estado: true
+                factura:
+                  id: 1
+                  num_factura: "FAC-20260325-1"
+                  fecha: "2026-03-25T00:14:17.082Z"
+                detalle:
+                  - id_lote: 2
+                    cantidad: 2
+                    subtotal: 50.00
+      "400":
+        description: Datos inválidos en la solicitud
+        content:
+          application/json:
+            examples:
+              sin_vendedor:
+                summary: Sin id_vendedor
+                value:
+                  status: 400
+                  message: "El id_vendedor es obligatorio"
+              vendedor_invalido:
+                summary: id_vendedor inválido
+                value:
+                  status: 400
+                  message: "id_vendedor debe ser un entero positivo"
+              metodo_invalido:
+                summary: Método de pago no permitido
+                value:
+                  status: 400
+                  message: "metodo_pago debe ser uno de: efectivo, credito, tarjeta, transferencia"
+              credito_sin_cliente:
+                summary: Crédito sin cliente
+                value:
+                  status: 400
+                  message: "Las ventas a crédito requieren id_cliente"
+              sin_productos:
+                summary: Sin productos
+                value:
+                  status: 400
+                  message: "Debe enviar al menos un producto"
+              cantidad_invalida:
+                summary: Cantidad inválida
+                value:
+                  status: 400
+                  message: "La cantidad de \"FAR001\" debe ser un entero positivo"
+              fecha_invalida:
+                summary: Fecha inválida
+                value:
+                  status: 400
+                  message: "La fecha debe ser una fecha válida (ej: YYYY-MM-DD)"
+      "404":
+        description: Producto no encontrado
+        content:
+          application/json:
+            example:
+              status: 404
+              message: "Producto no encontrado: \"NOEXISTE\""
+      "409":
+        description: Conflicto de negocio
+        content:
+          application/json:
+            examples:
+              sin_stock:
+                summary: Sin stock disponible
+                value:
+                  status: 409
+                  message: "Sin stock disponible para \"Paracetamol 500mg\""
+              stock_insuficiente:
+                summary: Stock insuficiente
+                value:
+                  status: 409
+                  message: "Stock insuficiente para \"Paracetamol 500mg\". Disponible: 18, solicitado: 999"
+              producto_inactivo:
+                summary: Producto inactivo
+                value:
+                  status: 409
+                  message: "El producto \"Paracetamol 500mg\" está inactivo"
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              status: 500
+              message: "Error interno del servidor"
 
 /ventas/{id}:
   get:
     summary: Obtener venta por ID
     tags: [Ventas]
-
     parameters:
       - in: path
         name: id
         required: true
         schema:
           type: integer
-
+          example: 1
     responses:
       "200":
         description: Venta encontrada
         content:
           application/json:
             example:
+              id: 1
+              id_vendedor: 1
+              id_cliente: null
+              total: "50"
+              metodo_pago: "efectivo"
+              estado: true
+              fecha: "2026-03-25T00:14:17.082Z"
+              Factura:
+                id: 1
+                num_factura: "FAC-20260325-1"
+                fecha: "2026-03-25T00:14:17.082Z"
+                DetalleFacturas:
+                  - id: 1
+                    id_factura: 1
+                    id_lote: 2
+                    cantidad: 2
+                    subtotal: "50"
+                    Inventario:
+                      id: 2
+                      cantidad: 18
+                      precio_venta: "25.00"
+                      Producto:
+                        id: 2
+                        nombre: "Paracetamol 500mg"
+                        codigo: "FAR001"
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              error: "Error interno del servidor"
+
+/ventas/cliente/{id_cliente}:
+  get:
+    summary: Obtener ventas por cliente
+    tags: [Ventas]
+    parameters:
+      - in: path
+        name: id_cliente
+        required: true
+        schema:
+          type: integer
+          example: 1
+    responses:
+      "200":
+        description: Ventas del cliente encontradas
+        content:
+          application/json:
+            example:
               status: 200
               data:
-                id: 1
-
+                - id: 1
+                  id_vendedor: 1
+                  id_cliente: 1
+                  total: "50"
+                  metodo_pago: "credito"
+                  estado: true
+                  fecha: "2026-03-25T00:14:17.082Z"
       "204":
-        description: Venta no encontrada
-
+        description: No se encontraron ventas para ese cliente
+        content:
+          application/json:
+            example:
+              status: 204
+              message: "No se encontraron ventas para el cliente con id 1"
       "500":
-        description: Error del servidor
-
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              status: 500
+              message: "Error interno del servidor"
