@@ -1,6 +1,7 @@
 //archivo para hacer endpoints de productos
 
-const { Producto } = require("../models");
+const { Op } = require("sequelize");
+const { Producto, Inventario } = require("../models");
 
 // Nuevo producto
 let createProducto = async (request, response) => {
@@ -28,7 +29,12 @@ let createProducto = async (request, response) => {
                 .json({ error: "El codigo del producto ya existe" });
         }
 
-        let nuevoProducto = await Producto.create({ nombre, codigo, imagen });
+        let nuevoProducto = await Producto.create({
+            nombre,
+            codigo,
+            imagen,
+            activo: true,
+        });
         response.status(201).json({
             message: "Producto creado exitosamente",
             status: 201,
