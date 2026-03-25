@@ -28,7 +28,6 @@ let getClienteById = async (request, response) => {
     }
 };
 
-
 let createCliente = async (request, response) => {
     try {
 

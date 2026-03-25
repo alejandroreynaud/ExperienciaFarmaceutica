@@ -1,88 +1,168 @@
 /facturas:
-  post:
-    summary: Crear factura
-    tags: [Facturas]
-
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              id_venta:
-                type: integer
-                example: 2
-              num_factura:
-                type: string
-                example: "FAC-001"
-              fecha:
-                type: string
-                example: "2026-03-19"
-              url_imagen:
-                type: string
-                example: "factura.png"
-              hash_doc:
-                type: string
-                example: "abc123"
-
-    responses:
-      "201":
-        description: Factura creada correctamente
-
-      "400":
-        description: Esta venta ya tiene una factura
-
-      "404":
-        description: La venta no existe
-
-      "500":
-        description: Error del servidor
-
-
-/facturas/{id}:
-  get:
-    summary: Obtener factura por Id
-    tags: [Facturas]
-
-    parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: integer
-
-    responses:
-      "200":
-        description: Factura encontrada
-
-      "404":
-        description: Factura no encontrada
-
-      "500":
-        description: Error del servidor
-
-
-/facturas/fecha:
   get:
     summary: Obtener facturas por fecha
     tags: [Facturas]
-
     parameters:
       - in: query
         name: fecha
         required: true
         schema:
           type: string
-          example: "2026-03-19"
-
+          example: "2026-03-25"
+        description: Fecha en formato YYYY-MM-DD. 
     responses:
       "200":
-        description: Lista de facturas
-
+        description: Lista de facturas encontradas
+        content:
+          application/json:
+            example:
+              - id: 1
+                id_venta: 1
+                num_factura: "FAC-20260325-1"
+                fecha: "2026-03-25T00:14:17.082Z"
+                url_imagen: null
+                hash_doc: null
+                Venta:
+                  id: 1
+                  id_vendedor: 1
+                  id_cliente: null
+                  total: "50"
+                  metodo_pago: "efectivo"
+                  estado: true
+                  fecha: "2026-03-25T00:14:17.082Z"
+                DetalleFacturas:
+                  - cantidad: 2
+                    subtotal: "50"
+                    Inventario:
+                      id: 2
+                      precio_venta: "25.00"
+                      Producto:
+                        nombre: "Paracetamol 500mg"
+                        codigo: "FAR001"
       "500":
-        description: Error del servidor
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: "Error obteniendo facturas"
+              error: "Error interno del servidor"
 
+  post:
+    summary: Crear factura
+    tags: [Facturas]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - id_venta
+              - num_factura
+              - fecha
+            properties:
+              id_venta:
+                type: integer
+                example: 1
+                description: Obligatorio. ID de la venta asociada.
+              num_factura:
+                type: string
+                example: "FAC-20260325-1"
+                description: Obligatorio. Número único de factura.
+              fecha:
+                type: string
+                example: "2026-03-25"
+                description: Obligatorio. Formato YYYY-MM-DD.
+              url_imagen:
+                type: string
+                nullable: true
+                example: null
+                description: Opcional. URL de la imagen de la factura.
+              hash_doc:
+                type: string
+                nullable: true
+                example: null
+                description: Opcional. Hash del documento.
+    responses:
+      "201":
+        description: Factura creada correctamente
+        content:
+          application/json:
+            example:
+              id: 1
+              id_venta: 1
+              num_factura: "FAC-20260325-1"
+              fecha: "2026-03-25T00:14:17.082Z"
+              url_imagen: null
+              hash_doc: null
+      "400":
+        description: Esta venta ya tiene una factura
+        content:
+          application/json:
+            example:
+              message: "Esta venta ya tiene una factura"
+      "404":
+        description: La venta no existe
+        content:
+          application/json:
+            example:
+              message: "La venta no existe"
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: "Error creando factura"
+              error: "Error interno del servidor"
 
-
-
+/facturas/{num_factura}:
+  get:
+    summary: Obtener factura por número de factura
+    tags: [Facturas]
+    parameters:
+      - in: path
+        name: num_factura
+        required: true
+        schema:
+          type: string
+          example: "FAC-20260325-1"
+        description: Número de factura. Ej: FAC-20260325-1
+    responses:
+      "200":
+        description: Factura encontrada
+        content:
+          application/json:
+            example:
+              id: 1
+              id_venta: 1
+              num_factura: "FAC-20260325-1"
+              fecha: "2026-03-25T00:14:17.082Z"
+              url_imagen: null
+              hash_doc: null
+              Venta:
+                id: 1
+                total: "50"
+                metodo_pago: "efectivo"
+                fecha: "2026-03-25T00:14:17.082Z"
+              DetalleFacturas:
+                - cantidad: 2
+                  subtotal: "50"
+                  Inventario:
+                    precio_venta: "25.00"
+                    Producto:
+                      id: 2
+                      nombre: "Paracetamol 500mg"
+                      codigo: "FAR001"
+      "404":
+        description: Factura no encontrada
+        content:
+          application/json:
+            example:
+              message: "Factura no encontrada"
+      "500":
+        description: Error interno del servidor
+        content:
+          application/json:
+            example:
+              message: "Error obteniendo factura"
+              error: "Error interno del servidor"
