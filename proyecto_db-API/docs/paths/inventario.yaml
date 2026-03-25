@@ -100,7 +100,6 @@ inventario/{codigo}:
       "500":
         description: Error del servidor
 
-
 inventario/lote/{id}:
   put:
     summary: Actualizar lote de inventario
