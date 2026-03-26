@@ -10,20 +10,19 @@ const {
   Cliente,
   sequelize,
 } = require("../models");
-const db = require("../config/config");
 
 const getVentasHoy = async (req, res) => {
   try {
     const query = `
-      SELECT 
-        COALESCE(SUM(total), 0) AS total,
-        COUNT(*) AS cantidad_ventas
-      FROM ventas
-      WHERE DATE(fecha) = CURRENT_DATE()
-        AND estado = true
+      SELECT
+        COALESCE(SUM("total"), 0) AS total,
+        COUNT(*)::int AS cantidad_ventas
+      FROM "Venta"
+      WHERE DATE("fecha") = CURRENT_DATE
+        AND "estado" = true
     `;
 
-    const [rows] = await db.query(query);
+    const [rows] = await sequelize.query(query);
 
     res.json({
       total: parseFloat(rows[0].total),
@@ -40,17 +39,17 @@ const getVentasHoy = async (req, res) => {
 const getVentasMensual = async (req, res) => {
   try {
     const query = `
-      SELECT 
-        MONTH(fecha) AS mes_num,
-        COALESCE(SUM(total), 0) AS total
-      FROM ventas
-      WHERE YEAR(fecha) = YEAR(CURRENT_DATE())
-        AND estado = true
+      SELECT
+        EXTRACT(MONTH FROM "fecha")::int AS mes_num,
+        COALESCE(SUM("total"), 0) AS total
+      FROM "Venta"
+      WHERE EXTRACT(YEAR FROM "fecha") = EXTRACT(YEAR FROM CURRENT_DATE)
+        AND "estado" = true
       GROUP BY mes_num
       ORDER BY mes_num ASC
     `;
 
-    const [rows] = await db.query(query);
+    const [rows] = await sequelize.query(query);
 
     // Nombres de meses
     const meses = {
@@ -106,26 +105,27 @@ const getVentasMensual = async (req, res) => {
 const getVentasSemanal = async (req, res) => {
   try {
     const query = `
-      SELECT 
-        DAYOFWEEK(fecha) AS dia_num,
-        COALESCE(SUM(total), 0) AS total
-      FROM ventas
-      WHERE YEARWEEK(fecha, 1) = YEARWEEK(CURRENT_DATE(), 1)
-        AND estado = true
+      SELECT
+        EXTRACT(ISODOW FROM "fecha")::int AS dia_num,
+        COALESCE(SUM("total"), 0) AS total
+      FROM "Venta"
+      WHERE DATE("fecha") >= DATE_TRUNC('week', CURRENT_DATE)::date
+        AND DATE("fecha") < (DATE_TRUNC('week', CURRENT_DATE)::date + INTERVAL '7 day')
+        AND "estado" = true
       GROUP BY dia_num
     `;
 
-    const [rows] = await db.query(query);
+    const [rows] = await sequelize.query(query);
 
     // Mapeo de días
     const dias = {
-      1: "Dom",
-      2: "Lun",
-      3: "Mar",
-      4: "Mié",
-      5: "Jue",
-      6: "Vie",
-      7: "Sáb",
+      1: "Lun",
+      2: "Mar",
+      3: "Mié",
+      4: "Jue",
+      5: "Vie",
+      6: "Sáb",
+      7: "Dom",
     };
 
     // Inicializar semana completa en 0

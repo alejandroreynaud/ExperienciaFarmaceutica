@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
   Compra.init({
     total: DataTypes.DECIMAL,
     metodo_pago: DataTypes.STRING,
+    rtn: DataTypes.STRING,
     fecha: DataTypes.DATE,
     id_usuario: DataTypes.INTEGER
   }, {
