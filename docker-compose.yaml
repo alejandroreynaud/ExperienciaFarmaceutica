@@ -20,7 +20,7 @@ services:
     build: ./proyecto_db-API
     container_name: proyecto_api
     restart: always
-    command: sh -c "npm install --include=dev; npm run db:migrate; npm start"
+    command: sh -c "npm install --include=dev && npm run db:migrate && npm start"
     ports:
       - "3008:3000"
     env_file:
