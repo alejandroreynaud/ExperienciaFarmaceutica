@@ -473,7 +473,7 @@ let createVenta = async (request, response) => {
       { transaction: t },
     );
 
-    // ── Registrar Movimientos (auditoría por lote) ────────────────────────────
+    // ── Registrar Movimientos (auditoría por lote) ───────────────────────────
 
     await Movimiento.bulkCreate(
       lotesConsumidos.map((lc) => ({
@@ -586,6 +586,39 @@ let getVentasByCliente = async (request, response) => {
     });
   }
 };
+const getProductosVenta = async (req, res) => {
+  try {
+    const productos = await Producto.findAll({
+      where: { activo: true },
+      attributes: ["id", "nombre", "codigo"],
+      include: [
+        {
+          model: Inventario,
+          where: {
+            lote_activo: true,
+            cantidad: { [Op.gt]: 0 },
+          },
+          attributes: ["precio_venta", "cantidad"],
+          required: true,
+        },
+      ],
+    });
+
+    // Agrupar stock total y precio_venta por producto
+    const data = productos.map((p) => ({
+      id: p.id,
+      nombre: p.nombre,
+      codigo: p.codigo,
+      precio_venta: parseFloat(p.Inventarios[0].precio_venta),
+      stock: p.Inventarios.reduce((sum, l) => sum + l.cantidad, 0),
+    }));
+
+    res.status(200).json({ status: 200, data });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, message: error.message });
+  }
+};
 
 module.exports = {
   getVentasFecha,
@@ -595,4 +628,6 @@ module.exports = {
   getVentasSemanal,
   getVentasMensual,
   getVentasHoy,
+  getProductosVenta,
+
 };
