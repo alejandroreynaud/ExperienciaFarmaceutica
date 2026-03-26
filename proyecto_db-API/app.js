@@ -61,7 +61,4 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-const clientesRoutes = require("./routes/clientes");
-app.use("/api", clientesRoutes);
-
 module.exports = app;
