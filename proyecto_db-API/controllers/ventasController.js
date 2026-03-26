@@ -19,12 +19,12 @@ const getVentasHoy = async (req, res) => {
         COALESCE(SUM(total), 0) AS total,
         COUNT(*) AS cantidad_ventas
       FROM ventas
-      WHERE DATE(fecha) = CURRENT_DATE()
+      WHERE fecha::date = CURRENT_DATE
         AND estado = true
     `;
-
+ 
     const [rows] = await db.query(query);
-
+ 
     res.json({
       total: parseFloat(rows[0].total),
       cantidad_ventas: rows[0].cantidad_ventas,
@@ -41,17 +41,17 @@ const getVentasMensual = async (req, res) => {
   try {
     const query = `
       SELECT 
-        MONTH(fecha) AS mes_num,
+        EXTRACT(MONTH FROM fecha)::int AS mes_num,
         COALESCE(SUM(total), 0) AS total
       FROM ventas
-      WHERE YEAR(fecha) = YEAR(CURRENT_DATE())
+      WHERE EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM CURRENT_DATE)
         AND estado = true
       GROUP BY mes_num
       ORDER BY mes_num ASC
     `;
-
+ 
     const [rows] = await db.query(query);
-
+ 
     // Nombres de meses
     const meses = {
       1: "Ene",
@@ -67,7 +67,7 @@ const getVentasMensual = async (req, res) => {
       11: "Nov",
       12: "Dic",
     };
-
+ 
     // Inicializar todos los meses en 0
     const resultado = [
       { mes: "Ene", total: 0 },
@@ -83,17 +83,17 @@ const getVentasMensual = async (req, res) => {
       { mes: "Nov", total: 0 },
       { mes: "Dic", total: 0 },
     ];
-
+ 
     // Llenar con datos reales
     rows.forEach((row) => {
       const nombreMes = meses[row.mes_num];
-
+ 
       const index = resultado.findIndex((m) => m.mes === nombreMes);
       if (index !== -1) {
         resultado[index].total = parseFloat(row.total);
       }
     });
-
+ 
     res.json(resultado);
   } catch (error) {
     console.error("Error en ventas mensuales:", error);
@@ -107,27 +107,29 @@ const getVentasSemanal = async (req, res) => {
   try {
     const query = `
       SELECT 
-        DAYOFWEEK(fecha) AS dia_num,
+        EXTRACT(DOW FROM fecha)::int AS dia_num,
         COALESCE(SUM(total), 0) AS total
       FROM ventas
-      WHERE YEARWEEK(fecha, 1) = YEARWEEK(CURRENT_DATE(), 1)
+      WHERE fecha::date >= DATE_TRUNC('week', CURRENT_DATE)::date
+        AND fecha::date <  DATE_TRUNC('week', CURRENT_DATE)::date + INTERVAL '7 days'
         AND estado = true
       GROUP BY dia_num
     `;
-
+ 
     const [rows] = await db.query(query);
-
-    // Mapeo de días
+ 
+    // PostgreSQL EXTRACT(DOW): 0=Domingo, 1=Lunes, 2=Martes,
+    //                           3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
     const dias = {
-      1: "Dom",
-      2: "Lun",
-      3: "Mar",
-      4: "Mié",
-      5: "Jue",
-      6: "Vie",
-      7: "Sáb",
+      1: "Lun",
+      2: "Mar",
+      3: "Mié",
+      4: "Jue",
+      5: "Vie",
+      6: "Sáb",
+      0: "Dom",
     };
-
+ 
     // Inicializar semana completa en 0
     const semana = [
       { dia: "Lun", total: 0 },
@@ -138,17 +140,17 @@ const getVentasSemanal = async (req, res) => {
       { dia: "Sáb", total: 0 },
       { dia: "Dom", total: 0 },
     ];
-
+ 
     // Llenar con datos reales
     rows.forEach((row) => {
       const nombreDia = dias[row.dia_num];
-
+ 
       const index = semana.findIndex((d) => d.dia === nombreDia);
       if (index !== -1) {
         semana[index].total = parseFloat(row.total);
       }
     });
-
+ 
     res.json(semana);
   } catch (error) {
     console.error("Error en ventas semanales:", error);
