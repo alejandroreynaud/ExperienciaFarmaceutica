@@ -24,15 +24,12 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     nombre: DataTypes.STRING,
-    imagen: DataTypes.STRING,
-    activo: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    }
+    imagen: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'Producto',
+    tableName: 'Productos',    // ← nombre exacto en la BD
+    timestamps: true
   });
   return Producto;
 };

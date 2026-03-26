@@ -1,41 +1,30 @@
-detallefacturas/{id}:
+# docs/paths/detalle-facturas.yaml
+/detallefacturas/{id}:
   get:
     summary: Obtener detalle de factura por Id
     tags: [DetalleFacturas]
-
     parameters:
       - in: path
         name: id
         required: true
         schema:
           type: integer
-
     responses:
       "200":
         description: Detalle encontrado
       "404":
         description: Detalle no encontrado
-      "500":
-        description: Error del servidor
 
-
-detalle-facturas/factura/id_factura:
+/detalle-facturas/factura/{id_factura}:
   get:
-    summary: Obtener detalles por Id de factura
+    summary: Obtener detalles por Id de factura maestro
     tags: [DetalleFacturas]
-
     parameters:
       - in: path
         name: id_factura
         required: true
         schema:
           type: integer
-          example: 10
-
     responses:
       "200":
-        description: Lista de detalles de la factura
-      "404":
-        description: No se encontraron detalles para esa factura
-      "500":
-        description: Error del servidor
+        description: Lista de detalles recuperada

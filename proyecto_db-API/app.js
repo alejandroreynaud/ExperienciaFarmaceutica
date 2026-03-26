@@ -13,13 +13,12 @@ var facturasRoutes = require("./routes/facturas");
 var inventarioRoutes = require('./routes/inventario');
 var clientesRoutes = require('./routes/clientes');
 var comprasRoutes = require('./routes/compras');
-var proveedoresRoutes = require('./routes/proveedores');
+var proveedoresRouter = require("./routes/proveedores");
+
+
 var app = express();
-const cors = require('cors');
-app.use(cors({
-  origin: 'http://localhost:5173', 
-  credentials: true
-}));
+const cors = require("cors");
+app.use(cors());
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -36,10 +35,10 @@ app.use('/api/users', usersRouter);
 app.use("/api", ventasRoutes);
 app.use("/api", productosRoutes);
 app.use('/api', facturasRoutes);
-app.use('/api/inventory', inventarioRoutes);
+app.use('/api', inventarioRoutes);
 app.use('/api', clientesRoutes);
 app.use('/api', comprasRoutes);
-app.use('/api', proveedoresRoutes);
+app.use("/api", proveedoresRouter);
 
 
 swaggerSetup(app);
