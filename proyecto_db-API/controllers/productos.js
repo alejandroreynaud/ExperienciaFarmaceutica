@@ -205,22 +205,6 @@ let desactivarProducto = async (request, response) => {
             });
         }
 
-        // Verificar si tiene lotes activos con existencias
-        const lotesConStock = await Inventario.count({
-            where: {
-                id_prod: producto.id,
-                lote_activo: true,
-                cantidad: { [Op.gt]: 0 },
-            },
-        });
-
-        if (lotesConStock > 0) {
-            return response.status(409).json({
-                status: 409,
-                message: `No se puede desactivar el producto porque tiene ${lotesConStock} lote(s) activo(s) con stock disponible. Cierra o agota los lotes antes de desactivarlo`,
-            });
-        }
-
         producto.activo = false;
         await producto.save();
 
@@ -268,6 +252,21 @@ let activarProducto = async (request, response) => {
             return response.status(409).json({
                 message: "El producto ya está activo",
                 status: 409,
+            });
+        }
+
+        const lotesConStock = await Inventario.count({
+            where: {
+                id_prod: producto.id,
+                lote_activo: true,
+                cantidad: { [Op.gt]: 0 },
+            },
+        });
+
+        if (lotesConStock <= 0) {
+            return response.status(409).json({
+                status: 409,
+                message: "No se puede reactivar el producto porque su stock activo es 0",
             });
         }
 

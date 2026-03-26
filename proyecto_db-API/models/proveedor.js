@@ -18,7 +18,9 @@ module.exports = (sequelize, DataTypes) => {
     telefono: DataTypes.STRING
   }, {
     sequelize,
-    modelName: 'Proveedor',
+     modelName: 'Proveedor',
+     tableName: 'Proveedors',
+     timestamps: true
   });
   return Proveedor;
 };

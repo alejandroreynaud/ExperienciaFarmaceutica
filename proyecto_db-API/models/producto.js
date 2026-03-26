@@ -28,6 +28,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Producto',
+    tableName: 'Productos',    // ← nombre exacto en la BD
+    timestamps: true
   });
   return Producto;
 };
