@@ -160,57 +160,31 @@ const getVentasSemanal = async (req, res) => {
 
 let getVentasFecha = async (request, response) => {
   try {
-    let whereCondition = {};
+    let ventas;
 
     if (request.query.fecha) {
-      whereCondition = sequelize.where(
-        sequelize.fn("DATE", sequelize.col("Venta.fecha")),
-        request.query.fecha
-      );
+      ventas = await Venta.findAll({
+        where: sequelize.where(
+          sequelize.fn("DATE", sequelize.col("fecha")),
+          request.query.fecha,
+        ),
+      });
+    } else {
+      ventas = await Venta.findAll();
     }
 
-    const ventas = await Venta.findAll({
-      where: whereCondition,
-      include: [
-        {
-          model: Factura,
-          include: [
-            {
-              model: DetalleFactura,
-              include: [
-                {
-                  model: Inventario,
-                  include: [
-                    {
-                      model: Producto,
-                      attributes: ["id", "nombre", "codigo"],
-                    },
-                  ],
-                  attributes: ["id", "precio_venta"],
-                },
-              ],
-              attributes: ["id", "cantidad", "subtotal"],
-            },
-          ],
-          attributes: ["id", "num_factura", "fecha"],
-        },
-      ],
-      order: [["fecha", "DESC"]],
-    });
-
-    if (!ventas || ventas.length === 0) {
-      return response.status(204).json({
+    if (ventas.length <= 0) {
+      response.status(204).json({
         status: 204,
         message: "No se encontraron ventas",
       });
+    } else {
+      response.status(200).json({
+        status: 200,
+        data: ventas,
+      });
     }
-
-    response.status(200).json({
-      status: 200,
-      data: ventas,
-    });
   } catch (error) {
-    console.error(error);
     response.status(500).json({
       status: 500,
       message: error.message,
@@ -218,105 +192,78 @@ let getVentasFecha = async (request, response) => {
   }
 };
 
-let getVentaById = async (req, res) => {
+let getVentaById = async (request, response) => {
   try {
-    const venta = await Venta.findByPk(req.params.id, {
-      include: [
-        {
-          model: Factura,
-          include: [
-            {
-              model: DetalleFactura,
-              include: [
-                {
-                  model: Inventario,
-                  include: [
-                    {
-                      model: Producto,
-                      attributes: ["id", "nombre", "codigo"],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+    let venta = await Venta.findByPk(request.params.id, {
+      include: [{ model: Factura, include: [{ model: DetalleFactura }] }],
     });
-
-    res.json(venta);
+    if (!venta) {
+      response.status(204).json({
+        status: 204,
+        message: "Venta no encontrada",
+      });
+    } else {
+      response.status(200).json({
+        status: 200,
+        data: venta,
+      });
+    }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
+    response.status(500).json({
+      status: 500,
+      message: error.message,
+    });
   }
 };
 
 let createVenta = async (request, response) => {
- const t = await sequelize.transaction();
+  const t = await sequelize.transaction();
 
   try {
-    const { id_vendedor, id_cliente, metodo_pago, fecha, productos } = request.body;
+    const { id_vendedor, id_cliente, metodo_pago, fecha, productos } =
+      request.body;
 
     // ── Validaciones básicas ──────────────────────────────────────────────────
 
     if (!id_vendedor) {
       await t.rollback();
-      return response.status(400).json({ status: 400, message: "El id_vendedor es obligatorio" });
-    }
-
-    if (!Number.isInteger(Number(id_vendedor)) || Number(id_vendedor) <= 0) {
-      await t.rollback();
-      return response.status(400).json({ status: 400, message: "id_vendedor debe ser un entero positivo" });
+      return response
+        .status(400)
+        .json({ status: 400, message: "El id_vendedor es obligatorio" });
     }
 
     if (!metodo_pago?.trim()) {
       await t.rollback();
-      return response.status(400).json({ status: 400, message: "El metodo_pago es obligatorio" });
-    }
-
-    const metodosPermitidos = ["efectivo", "credito", "tarjeta", "transferencia"];
-    if (!metodosPermitidos.includes(metodo_pago.trim().toLowerCase())) {
-      await t.rollback();
-      return response.status(400).json({ status: 400, message: `metodo_pago debe ser uno de: ${metodosPermitidos.join(", ")}` });
+      return response
+        .status(400)
+        .json({ status: 400, message: "El metodo_pago es obligatorio" });
     }
 
     if (!Array.isArray(productos) || productos.length === 0) {
       await t.rollback();
-      return response.status(400).json({ status: 400, message: "Debe enviar al menos un producto" });
+      return response
+        .status(400)
+        .json({ status: 400, message: "Debe enviar al menos un producto" });
     }
 
     // Crédito requiere cliente
     if (metodo_pago.trim().toLowerCase() === "credito" && !id_cliente) {
       await t.rollback();
-      return response.status(400).json({ status: 400, message: "Las ventas a crédito requieren id_cliente" });
-    }
-
-
-    if (fecha !== undefined && fecha !== null) {
-      const fechaParseada = new Date(fecha);
-      if (isNaN(fechaParseada.getTime())) {
-        await t.rollback();
-        return response.status(400).json({ status: 400, message: "La fecha debe ser una fecha válida (ej: YYYY-MM-DD)" });
-      }
+      return response.status(400).json({
+        status: 400,
+        message: "Las ventas a crédito requieren id_cliente",
+      });
     }
 
     // Validar cada item del carrito antes de tocar la BD
     for (const item of productos) {
       if (!item.codigo && !item.nombre) {
         await t.rollback();
-        return response.status(400).json({ status: 400, message: "Cada producto debe tener codigo o nombre" });
+        return response.status(400).json({
+          status: 400,
+          message: "Cada producto debe tener codigo o nombre",
+        });
       }
-
-      if (item.codigo !== undefined && item.codigo.trim() === "") {
-        await t.rollback();
-        return response.status(400).json({ status: 400, message: "El codigo no puede ser una cadena vacía" });
-      }
-
-      if (item.nombre !== undefined && item.nombre.trim() === "") {
-        await t.rollback();
-        return response.status(400).json({ status: 400, message: "El nombre no puede ser una cadena vacía" });
-      }
-
       const cant = Number(item.cantidad);
       if (!Number.isInteger(cant) || cant <= 0) {
         await t.rollback();
@@ -355,7 +302,7 @@ let createVenta = async (request, response) => {
         });
       }
 
-      if (producto.activo === false) {
+      if (!producto.activo) {
         await t.rollback();
         return response.status(409).json({
           status: 409,
@@ -473,7 +420,7 @@ let createVenta = async (request, response) => {
       { transaction: t },
     );
 
-    // ── Registrar Movimientos (auditoría por lote) ───────────────────────────
+    // ── Registrar Movimientos (auditoría por lote) ────────────────────────────
 
     await Movimiento.bulkCreate(
       lotesConsumidos.map((lc) => ({
@@ -586,39 +533,6 @@ let getVentasByCliente = async (request, response) => {
     });
   }
 };
-const getProductosVenta = async (req, res) => {
-  try {
-    const productos = await Producto.findAll({
-      where: { activo: true },
-      attributes: ["id", "nombre", "codigo"],
-      include: [
-        {
-          model: Inventario,
-          where: {
-            lote_activo: true,
-            cantidad: { [Op.gt]: 0 },
-          },
-          attributes: ["precio_venta", "cantidad"],
-          required: true,
-        },
-      ],
-    });
-
-    // Agrupar stock total y precio_venta por producto
-    const data = productos.map((p) => ({
-      id: p.id,
-      nombre: p.nombre,
-      codigo: p.codigo,
-      precio_venta: parseFloat(p.Inventarios[0].precio_venta),
-      stock: p.Inventarios.reduce((sum, l) => sum + l.cantidad, 0),
-    }));
-
-    res.status(200).json({ status: 200, data });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: 500, message: error.message });
-  }
-};
 
 module.exports = {
   getVentasFecha,
@@ -628,6 +542,4 @@ module.exports = {
   getVentasSemanal,
   getVentasMensual,
   getVentasHoy,
-  getProductosVenta,
-
 };
