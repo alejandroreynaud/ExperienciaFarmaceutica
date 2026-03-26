@@ -2,7 +2,6 @@ const { Cliente } = require("../models");
 
 let getClienteById = async (request, response) => {
     try {
-
         const id = request.params.id;
         let cliente = await Cliente.findByPk(id);
 
@@ -17,21 +16,16 @@ let getClienteById = async (request, response) => {
             status: 200,
             data: cliente
         });
-
     } catch (error) {
-
         response.status(500).json({
             status: 500,
             message: error.message
         });
-
     }
 };
 
-
 let createCliente = async (request, response) => {
     try {
-
         const { nombre, identidad, RTN, telefono } = request.body;
 
         // Validar datos
@@ -55,22 +49,19 @@ let createCliente = async (request, response) => {
             message: "Cliente creado correctamente",
             data: cliente
         });
-
     } catch (error) {
-
         response.status(500).json({
             status: 500,
             message: error.message
         });
-
     }
 };
 
 let updateCliente = async (request, response) => {
     try {
-
         const id = request.params.id;
 
+        // buscar cliente
         let cliente = await Cliente.findByPk(id);
 
         if (!cliente) {
@@ -80,8 +71,10 @@ let updateCliente = async (request, response) => {
             });
         }
 
+        // Obtener datos del cuerpo de la petición
         const { nombre, identidad, telefono, RTN } = request.body;
 
+        // Actualizar el registro
         await cliente.update({
             nombre,
             identidad,
@@ -94,17 +87,13 @@ let updateCliente = async (request, response) => {
             message: "Cliente actualizado correctamente",
             data: cliente
         });
-
     } catch (error) {
-
         response.status(500).json({
             status: 500,
             message: error.message
         });
-
     }
 };
-
 
 module.exports = {
     getClienteById,
