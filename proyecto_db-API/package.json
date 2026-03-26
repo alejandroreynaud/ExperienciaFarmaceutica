@@ -19,6 +19,7 @@
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
+    "pdfkit": "^0.18.0",
     "pg": "^8.19.0",
     "pg-hstore": "^2.3.4",
     "pug": "2.0.0-beta11",
