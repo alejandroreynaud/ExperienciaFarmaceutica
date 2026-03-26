@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { Inventario, Producto } = require("../models");
+const { Inventario, Producto, Proveedor, LoteProveedor } = require("../models");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ let createInventario = async (request, response) => {
     const {
       codigo,
       nombre,
+      id_prov,
       cantidad,
       fecha_compra,
       fecha_vencimiento,
@@ -37,6 +38,22 @@ let createInventario = async (request, response) => {
       return response.status(400).json({
         status: 400,
         message: "Debe proporcionar el nombre o código del producto",
+      });
+    }
+
+    const proveedorId = Number(id_prov);
+    if (!Number.isInteger(proveedorId) || proveedorId <= 0) {
+      return response.status(400).json({
+        status: 400,
+        message: "Debe proporcionar un proveedor válido (id_prov)",
+      });
+    }
+
+    const proveedor = await Proveedor.findByPk(proveedorId);
+    if (!proveedor) {
+      return response.status(404).json({
+        status: 404,
+        message: "Proveedor no encontrado",
       });
     }
 
@@ -157,6 +174,11 @@ let createInventario = async (request, response) => {
       precio_venta: venta,
     });
 
+    await LoteProveedor.create({
+      id_lote: inventario.id,
+      id_prov: proveedor.id,
+    });
+
     response.status(201).json({
       status: 201,
       message: "Inventario creado exitosamente",
@@ -164,6 +186,10 @@ let createInventario = async (request, response) => {
       producto: {
         codigo: producto.codigo,
         nombre: producto.nombre,
+      },
+      proveedor: {
+        id: proveedor.id,
+        nombre: proveedor.nombre,
       },
     });
   } catch (error) {
